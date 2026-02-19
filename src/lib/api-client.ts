@@ -114,6 +114,35 @@ export async function apiGetProgress() {
     return apiFetch<ProgressRecord[]>("/api/progress");
 }
 
+export interface StudentDashboardData {
+    firstName: string;
+    lastName: string;
+    classCode: string;
+    progress: {
+        total: number;
+        wordpress: number;
+        prestashop: number;
+        acquiredCount: number;
+        totalCount: number;
+    };
+    recentActivity: Array<{
+        id: string;
+        label: string;
+        platform: string;
+        date: string;
+    }>;
+    comments: Array<{
+        id: string;
+        text: string;
+        author: string;
+        date: string;
+    }>;
+}
+
+export async function apiStudentDashboard() {
+    return apiFetch<StudentDashboardData>("/api/student/dashboard");
+}
+
 export async function apiSaveProgress(competencyId: string, acquired: boolean, proof?: string) {
     return apiFetch<ProgressRecord>(
         "/api/progress",
