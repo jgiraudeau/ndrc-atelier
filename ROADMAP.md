@@ -1,50 +1,38 @@
 # 🗺️ Feuille de Route : Application Compétences Digitales NDRC
 
 **Objectif :** Créer un "Compagnon de Révision E5" pour les étudiants BTS NDRC, permettant de suivre l'acquisition des compétences sur WordPress et PrestaShop.
+**URL Production :** [https://ndrc-skills.vercel.app](https://ndrc-skills.vercel.app)
 
 ---
 
-## 🏗️ État des Lieux (Ce qui est fait)
-- [x] **Initialisation du Projet :** Next.js 15 + Tailwind CSS + TypeScript installé.
-- [x] **UI Kit :** `shadcn/ui` installé et configuré.
-- [x] **Outils IA :** Projet Stitch créé (`Référentiel Compétences NDRC`) et Skills (`react-components`, `shadcn-ui`) installés localement.
-- [x] **Contenu Métier :** Liste complète des compétences WordPress (Astra/Spectra) et PrestaShop récupérée.
+## 🏗️ État des Lieux (Fait) ✅
+- [x] **Tech Stack :** Next.js 15, Tailwind, Prisma (PostgreSQL), Vercel, Railway.
+- [x] **Base de données :** Schéma relationnel (Prof, Élève, Classe, Progression, Commentaires).
+- [x] **API Backend :** Routes sécurisées (JWT) pour Auth, Students, Dashboard, Progress.
+- [x] **UI/UX Moderne :**
+    - Landing Page "Stitch Style" (Dark mode, Glassmorphism).
+    - Dashboard Étudiant complet (Stats, Activité récente, Messages prof).
+    - Dashboard Formateur (Vue classe, Import CSV, Validation).
+- [x] **Déploiement :** En ligne et fonctionnel.
 
 ---
 
-## 🚀 Phase 1 : Le MVP (Demain Matin)
-L'objectif est d'avoir une application fonctionnelle où l'on peut voir la liste et cocher des cases.
+## 🚀 Prochaine Étape : Validation Pratique & Liens Back-Office
+L'objectif est de dépasser le simple "cochage de case" pour aller vers une validation par la preuve.
 
-### 1. Structure des Données 💾
-- [ ] Créer le fichier `src/data/competencies.ts`.
-- [ ] Convertir la liste textuelle (Wordpress/PrestaShop) en objets JSON structurés :
-  ```typescript
-  { id: "wp-seo-1", platform: "WORDPRESS", category: "SEO", label: "Renseigner les méta descriptions (Yoast)", acquired: false }
-  ```
+### 1. Connexion Back-Office (Idée) 🔌
+- [ ] **Scénarios de validation :** L'app pose une question ("Comment change-t-on le permalien ?") ou demande une action.
+- [ ] **Lien vers sites écoles :** Boutons d'accès direct aux WP/PrestaShop de la classe.
+- [ ] **Upload de Preuves :** L'élève upload une capture d'écran ou un lien direct vers sa réalisation.
 
-### 2. Intégration du Design (Stitch) 🎨
-- [ ] Vérifier si Stitch a généré le Dashboard (si ça a bloqué, on relance ou on fait un design simple nous-mêmes).
-- [ ] Utiliser le skill `react:components` pour transformer le design Stitch en code React (`<Dashboard />`, `<CompetencyList />`).
-- [ ] Intégrer les barres de progression (Jauge circulaire ou linéaire).
+### 2. Fonctionnalités Pédagogiques 🧠
+- [ ] **Quiz de vérification :** Avant de valider "SEO", l'élève doit répondre à 3 questions aléatoires sur Yoast/RankMath.
+- [ ] **Export Bilan E5 :** Générer un PDF récapitulatif ("Fiche d'activités") pour l'examen.
 
-### 3. Logique de Suivi (State) 🧠
-- [ ] Créer un **Store** (Zustand ou React Context) pour gérer l'état "Acquis / Non Acquis".
-- [ ] Connecter les checkboxes aux barres de progression (Quand je coche, la barre monte).
+### 3. Améliorations UX 🎨
+- [ ] **Mode Sombre/Clair :** Toggle pour le dashboard étudiant.
+- [ ] **Notifications :** Email ou push quand le prof laisse un commentaire.
 
 ---
 
-## 🌟 Phase 2 : Persistance & UX (Après-demain)
-- [ ] **Sauvegarde Locale :** Utiliser `localStorage` pour que l'étudiant ne perde pas sa progression en fermant la page.
-- [ ] **Filtres :** Pouvoir afficher "Seulement le SEO" ou "Seulement PrestaShop".
-- [ ] **Mode "Focus" :** L'app propose une compétence au hasard à travailler ("Entraîne-toi à créer un code promo !").
-
----
-
-## 🔮 Phase 3 : Fonctionnalités Avancées (Optionnel)
-- [ ] **Export PDF :** Générer une "Fiche Bilan E5" propre pour le dossier d'examen.
-- [ ] **Preuves :** Permettre d'uploader un screenshot pour prouver une compétence.
-- [ ] **Auth Professeur :** Permettre au prof de voir la progression de sa classe.
-
----
-
-**👉 Prochaine action (Demain) :** Valider le fichier JSON des compétences et intégrer le premier écran.
+**Statut Actuel :** 🟢 **EN PRODUCTION (Phase 1 & 2 terminées)**

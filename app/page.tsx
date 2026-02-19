@@ -1,151 +1,139 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, GraduationCap, Users, LayoutDashboard, Globe, ShoppingBag } from "lucide-react";
+import {
+    ArrowRight, CheckCircle2, GraduationCap, Users, LayoutDashboard,
+    Globe, ShoppingBag, BarChart3, Mail, MonitorSmartphone, Share2, ShieldCheck, PenTool
+} from "lucide-react";
 import Image from "next/image";
 
 export default function LandingPage() {
     return (
-        <div className="min-h-screen bg-slate-900 text-white font-sans overflow-hidden selection:bg-indigo-500 selection:text-white">
+        <div className="min-h-screen bg-[#0f172a] text-white font-sans overflow-hidden selection:bg-indigo-500 selection:text-white">
 
-            {/* Background Gradients */}
+            {/* Background Gradients plus subtils */}
             <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-600 rounded-full blur-[120px] opacity-20 animate-pulse" />
-                <div className="absolute bottom-[0%] right-[-10%] w-[600px] h-[600px] bg-purple-600 rounded-full blur-[120px] opacity-20 animate-pulse delay-1000" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] opacity-30" />
+                <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[100px] opacity-20" />
             </div>
 
             {/* Navbar */}
-            <nav className="relative z-10 max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30">N</div>
-                    <span className="font-extrabold text-xl tracking-tight">NDRC Skills</span>
+            <nav className="relative z-10 max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center font-black text-white shadow-xl shadow-indigo-500/20 text-lg">N</div>
+                    <span className="font-extrabold text-2xl tracking-tight text-white">NDRC Skills</span>
                 </div>
-                {/* Desktop Menu - could be added here */}
-                <Link href="/teacher/login" className="text-sm font-semibold text-slate-300 hover:text-white transition-colors">
-                    Accès Formateur →
-                </Link>
+                <div className="flex items-center gap-6">
+                    <Link href="/teacher/login" className="hidden md:block text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                        Espace Formateur
+                    </Link>
+                    <Link href="/student/login" className="px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full text-sm font-bold transition-all backdrop-blur-md">
+                        Connexion
+                    </Link>
+                </div>
             </nav>
 
             {/* Hero Section */}
-            <main className="relative z-10 max-w-7xl mx-auto px-6 pt-20 pb-32 flex flex-col items-center text-center">
+            <main className="relative z-10 max-w-7xl mx-auto px-6 pt-10 pb-20 text-center">
 
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-6 animate-fade-in-up">
-                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                    <span className="text-xs font-medium text-slate-300">Nouveau : Tableau de bord étudiant disponible</span>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-sm mb-8 animate-fade-in-up">
+                    <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                    </span>
+                    <span className="text-xs font-bold text-indigo-300 tracking-wide uppercase">Le compagnon officiel BTS NDRC</span>
                 </div>
 
-                <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400 max-w-4xl">
-                    Maîtrisez vos compétences <span className="text-indigo-400">E5</span>.
+                <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-tight">
+                    Votre passeport pour <br />
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+                        l'épreuve E5 Digitale
+                    </span>
                 </h1>
 
-                <p className="text-lg md:text-xl text-slate-400 max-w-2xl mb-10 leading-relaxed">
-                    La plateforme tout-en-un pour valider vos acquis sur <span className="text-slate-200 font-semibold">WordPress</span> et <span className="text-slate-200 font-semibold">PrestaShop</span>. Préparez votre examen BTS NDRC en toute sérénité.
+                <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed font-medium">
+                    Ne laissez plus le hasard décider de votre note. <br className="hidden md:block" />
+                    Maîtrisez <span className="text-white">WordPress</span>, <span className="text-white">PrestaShop</span> et les stratégies digitales grâce à un suivi précis de vos compétences.
                 </p>
 
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-                    <Link href="/student/login" className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 group">
-                        Espace Étudiant
-                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-16">
+                    <Link href="/student/login" className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold transition-all shadow-xl shadow-indigo-600/20 hover:scale-105 flex items-center justify-center gap-2">
+                        Je connecte mon Espace Étudiant
+                        <ArrowRight size={18} />
                     </Link>
-                    <Link href="/teacher/login" className="w-full sm:w-auto px-8 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl font-bold transition-all backdrop-blur-sm flex items-center justify-center gap-2">
-                        <Users size={18} />
-                        Espace Formateur
+                    <Link href="/teacher/login" className="w-full sm:w-auto px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 border border-slate-700">
+                        Accès Professeur
                     </Link>
                 </div>
 
-                {/* Dashboard Preview Mockup */}
-                <div className="mt-20 relative w-full max-w-5xl group perspective-1000">
-                    <div className="absolute inset-0 bg-gradient-to-t from-indigo-500 via-purple-500 to-pink-500 rounded-3xl blur-[60px] opacity-20 group-hover:opacity-30 transition-opacity duration-700" />
-                    <div className="relative bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl transform group-hover:rotate-x-2 transition-transform duration-700">
-                        {/* Fake Browser Header */}
-                        <div className="h-8 bg-slate-800 border-b border-white/5 flex items-center gap-2 px-4">
-                            <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                            <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                            <div className="w-3 h-3 rounded-full bg-green-500/50" />
-                        </div>
-                        {/* Mockup Content - Simplified representation of the dashboard */}
-                        <div className="p-6 md:p-10 bg-slate-900 grid grid-cols-1 md:grid-cols-3 gap-6 opacity-80 group-hover:opacity-100 transition-opacity">
-                            {/* Sidebar Mock */}
-                            <div className="hidden md:block col-span-1 space-y-4 border-r border-white/5 pr-6">
-                                <div className="h-8 w-3/4 bg-slate-800 rounded-lg animate-pulse" />
-                                <div className="h-4 w-1/2 bg-slate-800 rounded animate-pulse opacity-50" />
-                                <div className="space-y-2 mt-8">
-                                    <div className="h-10 w-full bg-indigo-500/20 rounded-lg border border-indigo-500/30" />
-                                    <div className="h-10 w-full bg-slate-800/50 rounded-lg" />
-                                    <div className="h-10 w-full bg-slate-800/50 rounded-lg" />
-                                </div>
-                            </div>
-                            {/* Main Content Mock */}
-                            <div className="col-span-2 space-y-6">
-                                <div className="flex gap-4">
-                                    <div className="flex-1 h-32 bg-slate-800 rounded-2xl border border-white/5 p-4 flex flex-col justify-between">
-                                        <div className="w-8 h-8 rounded-full bg-indigo-500/20 mb-2" />
-                                        <div className="w-1/2 h-4 bg-slate-700 rounded" />
-                                    </div>
-                                    <div className="flex-1 h-32 bg-slate-800 rounded-2xl border border-white/5 p-4 flex flex-col justify-between">
-                                        <div className="w-8 h-8 rounded-full bg-purple-500/20 mb-2" />
-                                        <div className="w-1/2 h-4 bg-slate-700 rounded" />
-                                    </div>
-                                </div>
-                                <div className="h-48 bg-slate-800/50 rounded-2xl border border-white/5 p-4">
-                                    <div className="w-1/3 h-5 bg-slate-700 rounded mb-4" />
-                                    <div className="space-y-3">
-                                        <div className="w-full h-12 bg-slate-800 rounded-xl border border-white/5" />
-                                        <div className="w-full h-12 bg-slate-800 rounded-xl border border-white/5" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                {/* Ecosysteme Outils - "The Stack" */}
+                <div className="border-y border-white/5 bg-white/[0.02] py-12 mb-20">
+                    <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-8">Les outils que vous allez maîtriser</p>
+                    <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
+                        <ToolItem icon={<Globe size={32} />} label="WordPress" />
+                        <ToolItem icon={<ShoppingBag size={32} />} label="PrestaShop" />
+                        <ToolItem icon={<BarChart3 size={32} />} label="SEO & Analytics" />
+                        <ToolItem icon={<Mail size={32} />} label="Emailing" />
+                        <ToolItem icon={<MonitorSmartphone size={32} />} label="Social Media" />
+                        <ToolItem icon={<PenTool size={32} />} label="Canva / Design" />
                     </div>
+                </div>
+
+                {/* Features Grid */}
+                <div className="grid md:grid-cols-3 gap-6 text-left">
+                    <FeatureCard
+                        icon={<ShieldCheck className="text-emerald-400" size={28} />}
+                        title="Validation Certifiée"
+                        description="Chaque compétence est validée par votre formateur. Un gage de sérieux pour votre dossier d'examen."
+                        color="bg-emerald-500/10 border-emerald-500/20"
+                    />
+                    <FeatureCard
+                        icon={<LayoutDashboard className="text-blue-400" size={28} />}
+                        title="Tableau de Bord E5"
+                        description="Une vue d'ensemble claire pour savoir exactement où vous en êtes avant le jour J. Fini le stress."
+                        color="bg-blue-500/10 border-blue-500/20"
+                    />
+                    <FeatureCard
+                        icon={<Share2 className="text-pink-400" size={28} />}
+                        title="Portfolio Pro"
+                        description="Constituez au fil de l'année un portfolio de preuves concrètes : sites, campagnes, stats."
+                        color="bg-pink-500/10 border-pink-500/20"
+                    />
                 </div>
 
             </main>
 
-            {/* Features Section */}
-            <section className="relative z-10 py-24 bg-slate-900 border-t border-white/5">
-                <div className="max-w-7xl mx-auto px-6">
-                    <div className="grid md:grid-cols-3 gap-8">
-                        <FeatureCard
-                            icon={<LayoutDashboard className="text-indigo-400" size={32} />}
-                            title="Suivi en temps réel"
-                            description="Visualisez votre progression globale et détaillée par compétence. Sachez exactement où vous en êtes."
-                        />
-                        <FeatureCard
-                            icon={<CheckCircle2 className="text-green-400" size={32} />}
-                            title="Validation Formateur"
-                            description="Soumettez vos preuves et recevez des feedbacks directs de votre formateur pour valider chaque acquis."
-                        />
-                        <FeatureCard
-                            icon={<GraduationCap className="text-purple-400" size={32} />}
-                            title="Objectif Examen E5"
-                            description="Un référentiel 100% conforme aux attentes du BTS NDRC pour réussir l'épreuve de digitalisation."
-                        />
-                    </div>
-                </div>
-            </section>
-
             {/* Footer */}
-            <footer className="border-t border-white/5 py-12 bg-slate-950 text-center relative z-10">
-                <p className="text-slate-500 text-sm">
-                    © {new Date().getFullYear()} NDRC Skills. Développé avec ❤️ pour les BTS NDRC.
-                </p>
-                <div className="flex justify-center gap-6 mt-4">
-                    <span className="text-slate-600 text-xs">Mentions Légales</span>
-                    <span className="text-slate-600 text-xs">Contact</span>
+            <footer className="border-t border-white/5 py-8 bg-[#020617] text-center relative z-10 text-slate-600 text-sm">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                    <div className="w-6 h-6 bg-slate-800 rounded-lg flex items-center justify-center font-bold text-white text-xs">N</div>
+                    <span className="font-bold text-slate-400">NDRC Skills</span>
                 </div>
+                <p>© {new Date().getFullYear()} - La plateforme de réussite pour le BTS Négociation et Digitalisation de la Relation Client.</p>
             </footer>
         </div>
     );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
+function ToolItem({ icon, label }: { icon: React.ReactNode, label: string }) {
     return (
-        <div className="p-8 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all group cursor-default">
-            <div className="mb-6 p-4 rounded-2xl bg-slate-900 inline-block border border-white/5 shadow-inner group-hover:scale-110 transition-transform duration-300">
+        <div className="flex items-center gap-3 group cursor-default">
+            <div className="bg-white/5 p-3 rounded-xl border border-white/5 group-hover:bg-white/10 group-hover:border-white/10 transition-colors">
                 {icon}
             </div>
-            <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
-            <p className="text-slate-400 leading-relaxed">
+            <span className="font-bold text-lg text-slate-300 group-hover:text-white transition-colors">{label}</span>
+        </div>
+    );
+}
+
+function FeatureCard({ icon, title, description, color }: { icon: React.ReactNode, title: string, description: string, color: string }) {
+    return (
+        <div className={`p-8 rounded-3xl border transition-all hover:scale-[1.02] ${color} bg-slate-900/50 backdrop-blur-sm`}>
+            <div className="mb-4 inline-flex">
+                {icon}
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+            <p className="text-slate-400 leading-relaxed text-sm">
                 {description}
             </p>
         </div>
