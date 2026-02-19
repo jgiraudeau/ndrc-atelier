@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     });
 
     return apiSuccess(
-        progress.map((p) => ({
+        progress.map((p: any) => ({
             competencyId: p.competencyId,
             acquired: p.acquired,
             proof: p.proof,

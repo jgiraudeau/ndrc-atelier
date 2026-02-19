@@ -1,117 +1,147 @@
 import { NextRequest } from "next/server";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/src/lib/prisma";
 import { requireAuth, apiError, apiSuccess } from "@/src/lib/api-helpers";
+import bcrypt from "bcryptjs";
 
-// GET /api/students — liste des élèves du formateur connecté (avec progression)
+// GET /api/students
 export async function GET(request: NextRequest) {
     const auth = await requireAuth(request, ["TEACHER"]);
     if ("status" in auth) return auth;
-    const teacherId = auth.payload.sub;
 
-    const students = await prisma.student.findMany({
-        where: { teacherId },
-        include: {
-            class: true,
-            progress: true,
-            comments: {
-                orderBy: { createdAt: "desc" },
-                include: { teacher: { select: { name: true } } },
+    try {
+        const students = await prisma.student.findMany({
+            include: {
+                class: true,
+                progress: true,
+                comments: {
+                    include: { teacher: true },
+                    orderBy: { createdAt: "desc" },
+                },
             },
-        },
-        orderBy: [{ class: { code: "asc" } }, { lastName: "asc" }],
-    });
+            orderBy: [{ class: { code: "asc" } }, { lastName: "asc" }],
+        });
 
-    const result = students.map((s) => ({
-        id: s.id,
-        firstName: s.firstName,
-        lastName: s.lastName,
-        classCode: s.class.code,
-        className: s.class.name,
-        acquiredCount: s.progress.filter((p) => p.acquired).length,
-        progress: 0, // calculé côté client avec TOTAL_COMPETENCIES
-        lastActive: s.progress.length > 0
-            ? s.progress.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].updatedAt.toISOString()
-            : null,
-        competencies: s.progress.map((p) => ({
-            competencyId: p.competencyId,
-            acquired: p.acquired,
-            proof: p.proof,
-            updatedAt: p.updatedAt.toISOString(),
-        })),
-        comments: s.comments.map((c) => ({
-            id: c.id,
-            text: c.text,
-            authorName: c.teacher.name,
-            date: c.createdAt.toISOString(),
-        })),
-    }));
+        const safeStudents = students.map((s: any) => {
+            const acquiredCount = s.progress.filter((p: any) => p.acquired).length;
 
-    return apiSuccess(result);
+            // Calculer la dernière activité
+            let lastActive = null;
+            if (s.progress.length > 0) {
+                // Clone array before sort to avoid mutating readonly if applicable
+                const sortedProgress = [...s.progress].sort((a: any, b: any) =>
+                    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+                );
+                lastActive = sortedProgress[0].updatedAt.toISOString();
+            }
+
+            return {
+                id: s.id,
+                firstName: s.firstName,
+                lastName: s.lastName,
+                classCode: s.class.code,
+                className: s.class.name,
+                acquiredCount: acquiredCount,
+                progress: 0,
+                lastActive: lastActive,
+                competencies: s.progress.map((p: any) => ({
+                    competencyId: p.competencyId,
+                    acquired: p.acquired,
+                    proof: p.proof,
+                    updatedAt: p.updatedAt.toISOString(),
+                })),
+                comments: s.comments.map((c: any) => ({
+                    id: c.id,
+                    text: c.text,
+                    authorName: c.teacher?.name || "Professeur",
+                    date: c.createdAt.toISOString(),
+                })),
+            };
+        });
+
+        return apiSuccess(safeStudents);
+    } catch (error) {
+        console.error("[GET /api/students] Error:", error);
+        return apiError("Erreur serveur lors de la récupération des élèves", 500);
+    }
 }
 
-// POST /api/students — import CSV (bulk)
+// POST /api/students (Import CSV)
 export async function POST(request: NextRequest) {
     const auth = await requireAuth(request, ["TEACHER"]);
     if ("status" in auth) return auth;
-    const teacherId = auth.payload.sub;
 
     try {
-        const { students } = await request.json();
-        // students: Array<{ firstName, lastName, classCode, pin }>
+        const body = await request.json();
+        const { students } = body; // Array of { firstName, lastName, classCode, pin }
 
         if (!Array.isArray(students) || students.length === 0) {
-            return apiError("Liste d'élèves invalide");
+            return apiError("Format invalide. Un tableau 'students' est attendu.", 400);
         }
 
-        let imported = 0;
-        const errors: string[] = [];
+        let createdCount = 0;
+        let updatedCount = 0;
 
         for (const s of students) {
-            const { firstName, lastName, classCode, pin } = s;
-            if (!firstName || !lastName || !classCode || !pin) {
-                errors.push(`Données manquantes pour ${firstName} ${lastName}`);
-                continue;
-            }
+            if (!s.firstName || !s.lastName || !s.classCode || !s.pin) continue;
 
-            // Trouver ou créer la classe
-            const cls = await prisma.class.upsert({
-                where: { code_teacherId: { code: classCode.toUpperCase(), teacherId } },
-                create: { code: classCode.toUpperCase(), name: classCode.toUpperCase(), teacherId },
+            // 1. Upsert Class (UniqueConstraint: code + teacherId)
+            const classRecord = await prisma.class.upsert({
+                where: {
+                    code_teacherId: {
+                        code: s.classCode.toUpperCase(),
+                        teacherId: auth.payload.sub,
+                    },
+                },
                 update: {},
+                create: {
+                    code: s.classCode.toUpperCase(),
+                    name: s.classCode.toUpperCase(),
+                    teacherId: auth.payload.sub,
+                },
             });
 
-            // Hasher le PIN
-            const pinHash = await bcrypt.hash(pin, 10);
+            // 2. Hash PIN
+            const hashedPin = await bcrypt.hash(s.pin, 10);
 
-            // Créer l'élève (skip si doublon)
-            try {
-                await prisma.student.upsert({
-                    where: {
-                        classId_firstName_lastName: {
-                            classId: cls.id,
-                            firstName: firstName.trim(),
-                            lastName: lastName.trim(),
-                        },
-                    },
-                    create: {
-                        firstName: firstName.trim(),
-                        lastName: lastName.trim(),
-                        pinHash,
-                        teacherId,
-                        classId: cls.id,
-                    },
-                    update: { pinHash }, // Met à jour le PIN si l'élève existe déjà
+            // 3. Upsert Student (Par nom/prénom dans la classe)
+            // On cherche manuellement car pas d'upsert propre possible
+            const existingStudent = await prisma.student.findFirst({
+                where: {
+                    firstName: { equals: s.firstName, mode: "insensitive" },
+                    lastName: { equals: s.lastName, mode: "insensitive" },
+                    classId: classRecord.id,
+                },
+            });
+
+            if (existingStudent) {
+                // Update PIN only
+                await prisma.student.update({
+                    where: { id: existingStudent.id },
+                    data: { pinHash: hashedPin },
                 });
-                imported++;
-            } catch {
-                errors.push(`Erreur pour ${firstName} ${lastName}`);
+                updatedCount++;
+            } else {
+                // Create
+                await prisma.student.create({
+                    data: {
+                        firstName: s.firstName,
+                        lastName: s.lastName,
+                        pinHash: hashedPin,
+                        classId: classRecord.id, // Relation classe
+                        teacherId: auth.payload.sub, // Relation prof
+                    },
+                });
+                createdCount++;
             }
         }
 
-        return apiSuccess({ imported, errors }, 201);
-    } catch (err) {
-        console.error("[students/POST]", err);
-        return apiError("Erreur serveur", 500);
+        return apiSuccess({
+            message: "Import terminé avec succès",
+            stats: { created: createdCount, updated: updatedCount }
+        });
+
+    } catch (error) {
+        console.error("[POST /api/students] Error:", error);
+        return apiError("Erreur lors de l'import", 500);
     }
 }
