@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// FORMATEUR
+// ============================================================
+model Teacher {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime  @default(now())
+
+  students  Student[]
+  classes   Class[]
+  comments  Comment[]
+}
+
+// ============================================================
+// CLASSE
+// ============================================================
+model Class {
+  id        String   @id @default(cuid())
+  code      String                      // ex: "NDRC1"
+  name      String                      // ex: "BTS NDRC 1ère Année"
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId String
+  createdAt DateTime @default(now())
+
+  students  Student[]
+
+  @@unique([code, teacherId])           // Un code unique par formateur
+}
+
+// ============================================================
+// ÉLÈVE
+// ============================================================
+model Student {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  pinHash     String                    // PIN hashé avec bcrypt
+  teacher     Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId   String
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId     String
+  createdAt   DateTime @default(now())
+
+  progress  Progress[]
+  comments  Comment[]
+
+  @@unique([classId, firstName, lastName]) // Pas de doublon dans la même classe
+}
+
+// ============================================================
+// PROGRESSION (1 ligne = 1 compétence validée)
+// ============================================================
+model Progress {
+  id           String   @id @default(cuid())
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId    String
+  competencyId String                   // ex: "wp-niv1-identite"
+  acquired     Boolean  @default(false)
+  proof        String?                   // URL ou commentaire de l'élève
+  updatedAt    DateTime @updatedAt
+
+  @@unique([studentId, competencyId])   // 1 enregistrement par compétence par élève
+}
+
+// ============================================================
+// COMMENTAIRES DU FORMATEUR
+// ============================================================
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  createdAt DateTime @default(now())
+}
