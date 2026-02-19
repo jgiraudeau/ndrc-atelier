@@ -14,20 +14,26 @@ export default function StudentDashboard() {
   const router = useRouter();
   const [data, setData] = useState<StudentDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("ndrc_token");
     if (!token) { router.push("/student/login"); return; }
 
     apiStudentDashboard().then(({ data, error }) => {
+      setLoading(false); // Toujours arrêter le chargement
       if (error) {
-        if (error.includes("authentifié") || error.includes("invalide")) {
+        console.error("Dashboard error:", error);
+        if (error.includes("authentifié") || error.includes("invalide") || error.includes("interdit")) {
+          // Token expiré ou invalide
+          localStorage.removeItem("ndrc_token");
           router.push("/student/login");
+        } else {
+          setErrorMsg(error);
         }
         return;
       }
       setData(data);
-      setLoading(false);
     });
   }, [router]);
 
@@ -40,6 +46,19 @@ export default function StudentDashboard() {
   if (loading) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+    </div>
+  );
+
+  if (errorMsg) return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 text-center">
+      <h1 className="text-xl font-bold text-slate-800 mb-2">Oups, une erreur 😕</h1>
+      <p className="text-red-500 font-medium mb-6">{errorMsg}</p>
+      <button
+        onClick={() => { localStorage.removeItem("ndrc_token"); router.push("/student/login"); }}
+        className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition"
+      >
+        Retour à la connexion
+      </button>
     </div>
   );
 
