@@ -2,50 +2,49 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Target, Settings, Briefcase, ChevronRight, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Target, Briefcase, Loader2, Sparkles, Download, FileText, LayoutDashboard, BookmarkCheck } from "lucide-react";
 import Link from "next/link";
 import { apiGetProgress, type ProgressRecord } from "@/src/lib/api-client";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
 import { cn } from "@/lib/utils";
+import { jsPDF } from "jspdf";
+
+const SAVED_MISSION_KEY = "ndrc_saved_mission";
 
 export default function MissionsPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
 
-    // Competencies that need practice
     const [needsPractice, setNeedsPractice] = useState<typeof ALL_COMPETENCIES>([]);
-
-    // Form selections
     const [selectedContext, setSelectedContext] = useState("");
     const [selectedPlatform, setSelectedPlatform] = useState<"WORDPRESS" | "PRESTASHOP" | "ALL">("WORDPRESS");
 
-    // Result
     const [missionMarkdown, setMissionMarkdown] = useState<string | null>(null);
     const [errorMsg, setErrorMsg] = useState("");
+    const [savedMission, setSavedMission] = useState<string | null>(null);
+    const [justSaved, setJustSaved] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem("ndrc_token");
         if (!token) { router.push("/student/login"); return; }
 
+        const saved = localStorage.getItem(SAVED_MISSION_KEY);
+        if (saved) setSavedMission(saved);
+
         apiGetProgress().then(({ data, error }) => {
             setIsLoading(false);
-            if (error) {
-                console.error("Erreur serveur", error);
-                return;
-            }
+            if (error) { console.error("Erreur serveur", error); return; }
 
             if (data) {
-                // Map records
                 const progressMap: Record<string, { status: number }> = {};
                 data.forEach((p: ProgressRecord) => {
                     progressMap[p.competencyId] = { status: p.status || 0 };
                 });
 
-                // Find ALL_COMPETENCIES where status < 3
                 const lacking = ALL_COMPETENCIES.filter(c => {
                     const status = progressMap[c.id]?.status || 0;
-                    return status < 3; // 0, 1, or 2
+                    return status < 3;
                 });
 
                 setNeedsPractice(lacking);
@@ -54,11 +53,6 @@ export default function MissionsPage() {
     }, [router]);
 
     const handleGenerate = async () => {
-        if (!process.env.NEXT_PUBLIC_ALLOW_API) {
-            // Basic verification it's not totally broken
-        }
-
-        // Filter the competencies list by platform explicitly if requested
         let targeting = needsPractice;
         if (selectedPlatform !== "ALL") {
             targeting = needsPractice.filter(c => c.platform === selectedPlatform);
@@ -69,8 +63,7 @@ export default function MissionsPage() {
             return;
         }
 
-        // Take up to 3 random missing skills to form a realistic mission
-        const shuffled = targeting.sort(() => 0.5 - Math.random());
+        const shuffled = [...targeting].sort(() => 0.5 - Math.random());
         const selectedIds = shuffled.slice(0, 3).map(c => c.id);
 
         setGenerating(true);
@@ -81,28 +74,25 @@ export default function MissionsPage() {
             const token = localStorage.getItem("ndrc_token");
             const res = await fetch("/api/missions/generate", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    competencyIds: selectedIds,
-                    context: selectedContext
-                })
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ competencyIds: selectedIds, context: selectedContext })
             });
 
             const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || "Erreur serveur");
-            }
-
+            if (!res.ok) throw new Error(data.error || "Erreur serveur");
             setMissionMarkdown(data.mission);
         } catch (err: any) {
             setErrorMsg(err.message || "Impossible de joindre Gemini pour générer cette mission.");
         } finally {
             setGenerating(false);
         }
+    };
+
+    const handleSaveMission = (text: string) => {
+        localStorage.setItem(SAVED_MISSION_KEY, text);
+        setSavedMission(text);
+        setJustSaved(true);
+        setTimeout(() => setJustSaved(false), 2000);
     };
 
     if (isLoading) return (
@@ -113,7 +103,6 @@ export default function MissionsPage() {
 
     return (
         <main className="min-h-screen bg-slate-50 font-sans pb-20">
-            {/* Header */}
             <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
                 <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
                     <Link href="/student" className="p-2 -ml-2 text-slate-400 hover:text-slate-600 transition-colors">
@@ -132,11 +121,26 @@ export default function MissionsPage() {
             </header>
 
             <div className="max-w-md mx-auto p-6 space-y-6">
-
                 {missionMarkdown ? (
-                    <MissionResult markdown={missionMarkdown} onReset={() => setMissionMarkdown(null)} />
+                    <MissionResult
+                        markdown={missionMarkdown}
+                        onReset={() => setMissionMarkdown(null)}
+                        onSave={() => handleSaveMission(missionMarkdown)}
+                        justSaved={justSaved}
+                    />
                 ) : (
                     <>
+                        {savedMission && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
+                                <BookmarkCheck size={20} className="text-amber-600 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-amber-800">Mission sauvegardée</p>
+                                    <p className="text-xs text-amber-600 truncate">{savedMission.slice(0, 80)}...</p>
+                                </div>
+                                <button onClick={() => setMissionMarkdown(savedMission)} className="text-xs font-bold text-amber-700 underline whitespace-nowrap ml-2">Revoir</button>
+                            </div>
+                        )}
+
                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center gap-3">
                             <div className="bg-amber-100 p-4 rounded-full text-amber-600">
                                 <Sparkles size={32} />
@@ -147,7 +151,6 @@ export default function MissionsPage() {
                             </p>
                         </div>
 
-                        {/* Configuration de la mission */}
                         <div className="space-y-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">Plateforme ciblée</label>
@@ -164,7 +167,9 @@ export default function MissionsPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Contexte d'Entreprise <span className="text-slate-400 font-normal">(Optionnel)</span></label>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">
+                                    Contexte d'Entreprise <span className="text-slate-400 font-normal">(Optionnel)</span>
+                                </label>
                                 <input
                                     type="text"
                                     value={selectedContext}
@@ -183,20 +188,86 @@ export default function MissionsPage() {
                                 disabled={generating || needsPractice.length === 0}
                                 className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-50 flex justify-center items-center gap-2"
                             >
-                                {generating ? <><Loader2 size={18} className="animate-spin" /> Préparation de la mission...</> : <><Target size={18} /> Générer ma Mission (<Sparkles size={14} className="inline ml-1" />)</>}
+                                {generating
+                                    ? <><Loader2 size={18} className="animate-spin" /> Préparation de la mission...</>
+                                    : <><Target size={18} /> Générer ma Mission <Sparkles size={14} /></>
+                                }
                             </button>
                         </div>
                     </>
                 )}
             </div>
-
         </main>
     );
 }
 
-function MissionResult({ markdown, onReset }: { markdown: string, onReset: () => void }) {
+function MissionResult({ markdown, onReset, onSave, justSaved }: {
+    markdown: string;
+    onReset: () => void;
+    onSave: () => void;
+    justSaved: boolean;
+}) {
+    const downloadPdf = () => {
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+        doc.setFillColor(248, 250, 252);
+        doc.rect(0, 0, 210, 297, 'F');
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(30, 41, 59);
+        doc.text("Mission d'Entraînement NDRC", 20, 20);
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Généré le ${new Date().toLocaleDateString("fr-FR")}`, 20, 28);
+
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.5);
+        doc.line(20, 32, 190, 32);
+
+        const plainText = markdown
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\*(.*?)\*/g, '$1')
+            .replace(/^#{1,3} /gm, '')
+            .replace(/^> /gm, '');
+
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(30, 41, 59);
+
+        const lines = doc.splitTextToSize(plainText, 170);
+        doc.text(lines, 20, 42);
+
+        doc.save(`Mission_NDRC_${new Date().toISOString().slice(0, 10)}.pdf`);
+    };
+
+    const downloadWord = () => {
+        const htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'><title>Mission NDRC</title>
+<style>body { font-family: Calibri, sans-serif; font-size: 12pt; margin: 2cm; }</style>
+</head>
+<body>
+<h1>Mission d'Entraînement NDRC</h1>
+<p style="color:#64748b; font-size:10pt;">Généré le ${new Date().toLocaleDateString("fr-FR")}</p>
+<hr/>
+${formatMarkdown(markdown)}
+</body></html>`;
+
+        const blob = new Blob([htmlContent], { type: "application/msword" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Mission_NDRC_${new Date().toISOString().slice(0, 10)}.doc`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white rounded-3xl overflow-hidden shadow-lg border border-slate-200">
                 <div className="bg-slate-900 px-6 py-4 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
@@ -215,36 +286,59 @@ function MissionResult({ markdown, onReset }: { markdown: string, onReset: () =>
 
             <div className="grid grid-cols-2 gap-3">
                 <button
+                    onClick={onSave}
+                    className={cn(
+                        "col-span-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm border-2 transition-all",
+                        justSaved ? "bg-green-50 border-green-300 text-green-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
+                >
+                    <BookmarkCheck size={16} /> {justSaved ? "Sauvegardé !" : "Sauvegarder"}
+                </button>
+
+                <button
                     onClick={onReset}
-                    className="col-span-1 bg-white border-2 border-slate-200 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-50 transition-colors"
+                    className="col-span-1 bg-white border-2 border-slate-200 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-50 transition-colors text-sm"
                 >
                     Autre Mission
                 </button>
-                <Link
-                    href="/student/wordpress"
-                    className="col-span-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-green-200/50 flex items-center justify-center gap-2 transition-all"
+
+                <button
+                    onClick={downloadPdf}
+                    className="col-span-1 bg-rose-50 border-2 border-rose-200 text-rose-700 font-bold py-3 rounded-xl hover:bg-rose-100 transition-colors flex items-center justify-center gap-2 text-sm"
                 >
-                    <Settings size={18} /> À moi de jouer
+                    <Download size={16} /> Télécharger PDF
+                </button>
+
+                <button
+                    onClick={downloadWord}
+                    className="col-span-1 bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold py-3 rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 text-sm"
+                >
+                    <FileText size={16} /> Télécharger Word
+                </button>
+
+                <Link
+                    href="/student"
+                    className="col-span-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-green-200/50 flex items-center justify-center gap-2 transition-all"
+                >
+                    <LayoutDashboard size={18} /> À moi de jouer → Tableau de bord
                 </Link>
             </div>
         </div>
     );
 }
 
-// Very basic inline markdown formatter to keep things lightweight
 function formatMarkdown(text: string) {
     let html = text
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
         .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-black mt-6 mb-3">$1</h2>')
-        .replace(/^\> (.*$)/gim, '<blockquote class="border-l-4 border-indigo-200 pl-4 py-1 italic bg-indigo-50/50 my-4 text-slate-600">$1</blockquote>')
+        .replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-indigo-200 pl-4 py-1 italic bg-indigo-50/50 my-4 text-slate-600">$1</blockquote>')
         .replace(/\n\n/g, '</p><p class="mb-4">')
         .replace(/\n/g, '<br />');
 
-    // Basic list handling (simple)
     html = html.replace(/<br \/>- (.*?)(?=<br \/>|$)/g, '<li class="ml-4 mb-2">$1</li>');
-    html = html.replace(/(<li.*<\/li>)/, '<ul class="list-disc my-4">$1</ul>'); // attempt wrap without the s flag
+    html = html.replace(/(<li.*<\/li>)/, '<ul class="list-disc my-4">$1</ul>');
 
     return `<p>${html}</p>`;
 }
