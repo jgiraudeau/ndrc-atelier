@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard, BookOpen, MessageSquare, LogOut,
-  User, CheckCircle2, Trophy, Clock, ChevronRight, AlertCircle, ShoppingBag, Globe, Target
+  User, CheckCircle2, Trophy, Clock, ChevronRight, Globe, ShoppingBag, MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 import { apiStudentDashboard, type StudentDashboardData } from "@/src/lib/api-client";
@@ -65,37 +64,11 @@ export default function StudentDashboard() {
   if (!data) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
 
-      {/* Sidebar Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-100 p-6 fixed h-full z-10">
-        <div className="flex items-center gap-3 mb-10 px-2">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">N</div>
-          <span className="font-extrabold text-xl tracking-tight text-indigo-900">NDRC Skills</span>
-        </div>
-
-        <nav className="flex-1 space-y-2">
-          <NavItem icon={<LayoutDashboard size={20} />} label="Tableau de bord" active />
-          <NavItem icon={<Target size={20} />} label="Missions" href="/student/missions" />
-          <NavItem icon={<Globe size={20} />} label="WordPress" href="/student/wordpress" />
-          <NavItem icon={<ShoppingBag size={20} />} label="PrestaShop" href="/student/prestashop" />
-        </nav>
-
-        <div className="pt-6 border-t border-slate-100">
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all w-full text-sm font-bold">
-            <LogOut size={20} /> Déconnexion
-          </button>
-        </div>
-      </aside>
-
-      {/* Mobile Header / Top Bar */}
-      <div className="md:hidden fixed top-0 w-full bg-white border-b border-slate-100 z-20 px-4 py-3 flex justify-between items-center">
-        <span className="font-extrabold text-indigo-900">NDRC Skills</span>
-        <button onClick={handleLogout} className="p-2 text-slate-400"><LogOut size={20} /></button>
-      </div>
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64 p-6 md:p-10 pt-20 md:pt-10 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-6 md:p-10 pt-6 md:pt-10 max-w-7xl mx-auto w-full">
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
           <div>
@@ -266,37 +239,7 @@ export default function StudentDashboard() {
         </div>
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 flex justify-around p-3 z-20 pb-safe">
-        <MobileNavItem icon={<LayoutDashboard size={24} />} active href="/student" />
-        <MobileNavItem icon={<Target size={24} />} href="/student/missions" />
-        <MobileNavItem icon={<Globe size={24} />} href="/student/wordpress" />
-        <MobileNavItem icon={<ShoppingBag size={24} />} href="/student/prestashop" />
-      </nav>
     </div>
-  );
-}
-
-function NavItem({ icon, label, active = false, href = "#" }: { icon: React.ReactNode, label: string, active?: boolean, href?: string }) {
-  return (
-    <Link href={href} className={cn(
-      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm",
-      active ? "bg-indigo-50 text-indigo-700" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-    )}>
-      {icon}
-      {label}
-    </Link>
-  );
-}
-
-function MobileNavItem({ icon, active = false, href = "#" }: { icon: React.ReactNode, active?: boolean, href?: string }) {
-  return (
-    <Link href={href} className={cn(
-      "p-2 rounded-xl transition-colors",
-      active ? "text-indigo-600 bg-indigo-50" : "text-slate-400"
-    )}>
-      {icon}
-    </Link>
   );
 }
 
