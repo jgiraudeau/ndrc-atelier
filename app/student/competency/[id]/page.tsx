@@ -73,7 +73,7 @@ export default function CompetencyProofPage() {
         const newAcquired = status >= 3;
 
         // Vérification quiz
-        if (newAcquired && !isAcquired && quizQuestions && !quizPassed && skipQuizCheck !== true) {
+        if (newAcquired && quizQuestions && !quizPassed && skipQuizCheck !== true) {
             setShowQuiz(true);
             return;
         }
