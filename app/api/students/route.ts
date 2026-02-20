@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
                 lastName: s.lastName,
                 classCode: s.class.code,
                 className: s.class.name,
+                wpUrl: s.wpUrl,
+                prestaUrl: s.prestaUrl,
                 acquiredCount: acquiredCount,
                 progress: 0,
                 lastActive: lastActive,

@@ -22,8 +22,8 @@ L'objectif est de dépasser le simple "cochage de case" pour aller vers une vali
 
 ### 1. Connexion Back-Office (Idée) 🔌
 - [ ] **Scénarios de validation :** L'app pose une question ("Comment change-t-on le permalien ?") ou demande une action.
-- [ ] **Lien vers sites écoles :** Boutons d'accès direct aux WP/PrestaShop de la classe.
-- [ ] **Upload de Preuves :** L'élève upload une capture d'écran ou un lien direct vers sa réalisation.
+- [x] **Lien vers sites écoles :** Boutons d'accès direct aux WP/PrestaShop de la classe.
+- [x] **Upload de Preuves :** L'élève upload une capture d'écran ou un lien direct vers sa réalisation.
 
 ### 2. Fonctionnalités Pédagogiques 🧠
 - [ ] **Quiz de vérification :** Avant de valider "SEO", l'élève doit répondre à 3 questions aléatoires sur Yoast/RankMath.

@@ -45,6 +45,8 @@ model Student {
   firstName   String
   lastName    String
   pinHash     String                    // PIN hashé avec bcrypt
+  wpUrl       String?                   // URL du site WordPress de l'élève
+  prestaUrl   String?                   // URL du site PrestaShop de l'élève
   teacher     Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   teacherId   String
   class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)

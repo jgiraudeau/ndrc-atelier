@@ -55,9 +55,9 @@ export async function GET(request: NextRequest) {
         return apiSuccess({
             firstName: student.firstName,
             lastName: student.lastName,
-            classCode: student.class.code, // Non dispo directement via include ci-dessus, mais on a le classId.
-            // Correction: il faut include class si on veut le code. Mais on l'a dans le token.
-            // On va simplifier pour l'instant.
+            classCode: student.class.code,
+            wpUrl: student.wpUrl,
+            prestaUrl: student.prestaUrl,
             progress: {
                 total: progressPercentage,
                 wordpress: Math.round((wpAcquired / wpIds.length) * 100) || 0,

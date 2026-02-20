@@ -70,6 +70,8 @@ export interface StudentWithProgress {
     lastName: string;
     classCode: string;
     className: string;
+    wpUrl?: string | null;
+    prestaUrl?: string | null;
     acquiredCount: number;
     lastActive: string | null;
     competencies: Array<{
@@ -88,6 +90,13 @@ export interface StudentWithProgress {
 
 export async function apiGetStudents() {
     return apiFetch<StudentWithProgress[]>("/api/students");
+}
+
+export async function apiUpdateStudent(id: string, data: { wpUrl?: string; prestaUrl?: string }) {
+    return apiFetch<{ message: string; student: any }>(
+        `/api/students/${id}`,
+        { method: "PATCH", body: JSON.stringify(data) }
+    );
 }
 
 export async function apiImportStudents(
@@ -118,6 +127,8 @@ export interface StudentDashboardData {
     firstName: string;
     lastName: string;
     classCode: string;
+    wpUrl?: string | null;
+    prestaUrl?: string | null;
     progress: {
         total: number;
         wordpress: number;

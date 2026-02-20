@@ -222,6 +222,33 @@ export default function StudentDashboard() {
               </div>
             </section>
 
+            {/* Mes sites */}
+            <section className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
+              <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                <Globe size={20} className="text-slate-400" /> Mes Sites Accessibles
+              </h3>
+              <div className="space-y-3">
+                {data.wpUrl ? (
+                  <a href={data.wpUrl.startsWith("http") ? data.wpUrl : `https://${data.wpUrl}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-blue-600 text-white font-bold text-center py-3 rounded-xl shadow-md hover:bg-blue-700 transition-all text-sm">
+                    🚀 Ouvrir mon WordPress
+                  </a>
+                ) : (
+                  <div className="w-full border-2 border-dashed border-slate-200 text-slate-400 font-bold text-center py-3 rounded-xl text-sm italic">
+                    Lien WordPress non configuré
+                  </div>
+                )}
+                {data.prestaUrl ? (
+                  <a href={data.prestaUrl.startsWith("http") ? data.prestaUrl : `https://${data.prestaUrl}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-pink-600 text-white font-bold text-center py-3 rounded-xl shadow-md hover:bg-pink-700 transition-all text-sm">
+                    🛒 Ouvrir mon PrestaShop
+                  </a>
+                ) : (
+                  <div className="w-full border-2 border-dashed border-slate-200 text-slate-400 font-bold text-center py-3 rounded-xl text-sm italic">
+                    Lien PrestaShop non configuré
+                  </div>
+                )}
+              </div>
+            </section>
+
             {/* Quick Actions */}
             <section className="bg-indigo-50 rounded-3xl p-6 border border-indigo-100">
               <h3 className="font-bold text-indigo-900 text-sm uppercase mb-4 flex items-center gap-2">

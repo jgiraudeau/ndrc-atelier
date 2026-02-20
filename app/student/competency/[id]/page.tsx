@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle, Save, Globe } from "lucide-react";
+import { ArrowLeft, CheckCircle, Save, Globe, UploadCloud, Loader2, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiGetProgress, apiSaveProgress, type ProgressRecord } from "@/src/lib/api-client";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
@@ -21,6 +21,7 @@ export default function CompetencyProofPage() {
     const [isAcquired, setIsAcquired] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
 
     // Charger la progression existante depuis l'API
     useEffect(() => {
@@ -82,6 +83,44 @@ export default function CompetencyProofPage() {
         setTimeout(() => setIsSaved(false), 2500);
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert("L'image est trop lourde (5Mo maximum).");
+            return;
+        }
+
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const token = localStorage.getItem("ndrc_token");
+
+        try {
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData,
+            });
+
+            const data = await res.json();
+            if (res.ok && data.url) {
+                // Remplacer l'URL textuelle par l'URL de l'image
+                setProofInput(data.url);
+            } else {
+                alert(data.error || "Erreur lors de l'envoi de l'image.");
+            }
+        } catch (err) {
+            alert("Erreur réseau de connexion au serveur.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const isImageProof = proofInput.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) || proofInput.includes(".vercel.app/proofs/");
+
     return (
         <main className="min-h-screen bg-slate-50 font-sans pb-20">
             <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
@@ -120,12 +159,30 @@ export default function CompetencyProofPage() {
                         <Globe className="text-slate-400" size={18} />
                         Lien ou Commentaire
                     </h3>
-                    <textarea
-                        value={proofInput}
-                        onChange={(e) => setProofInput(e.target.value)}
-                        placeholder="Colle ici l'URL de ta page ou explique comment tu as fait..."
-                        className="w-full h-32 p-4 rounded-xl border-2 border-slate-200 focus:border-slate-400 focus:outline-none resize-none font-medium text-slate-700 bg-white shadow-sm text-sm"
-                    />
+                    <div className="relative">
+                        <textarea
+                            value={proofInput}
+                            onChange={(e) => setProofInput(e.target.value)}
+                            placeholder="Colle ici l'URL de ta page ou de ta preuve..."
+                            className="w-full h-32 p-4 rounded-xl border-2 border-slate-200 focus:border-slate-400 focus:outline-none resize-none font-medium text-slate-700 bg-white shadow-sm text-sm"
+                        />
+                        {isImageProof && proofInput && (
+                            <div className="mt-3 p-3 bg-white border border-slate-200 shadow-sm rounded-xl">
+                                <div className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
+                                    <ImageIcon size={14} /> Aperçu de l'image
+                                </div>
+                                <img src={proofInput} alt="Preuve" className="max-h-48 rounded-lg object-contain w-full" />
+                            </div>
+                        )}
+                        <input type="file" id="upload-proof" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                        <label htmlFor="upload-proof" className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-indigo-700 rounded-xl font-bold text-sm cursor-pointer transition-colors shadow-sm border border-slate-200">
+                            {isUploading ? (
+                                <><Loader2 className="animate-spin text-indigo-500" size={16} /> Upload en cours...</>
+                            ) : (
+                                <><UploadCloud size={16} className="text-slate-500" /> Uploader une capture d'écran</>
+                            )}
+                        </label>
+                    </div>
 
                     <motion.button
                         whileTap={{ scale: 0.95 }}

@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import {
     Users, Download, LogOut, FileSpreadsheet, Search,
     Upload, CheckCircle2, XCircle, MessageSquarePlus,
-    ChevronDown, ChevronUp, Trash2, Send, BookOpen, RefreshCw
+    ChevronDown, ChevronUp, Trash2, Send, BookOpen, RefreshCw,
+    Globe, Save
 } from "lucide-react";
 import {
-    apiGetStudents, apiImportStudents, apiAddComment, apiDeleteComment,
+    apiGetStudents, apiImportStudents, apiAddComment, apiDeleteComment, apiUpdateStudent,
     type StudentWithProgress
 } from "@/src/lib/api-client";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
@@ -56,9 +57,24 @@ export default function TeacherDashboard() {
     const [importStatus, setImportStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
     const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
     const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+    const [wpInputs, setWpInputs] = useState<Record<string, string>>({});
+    const [prestaInputs, setPrestaInputs] = useState<Record<string, string>>({});
     const [teacherName, setTeacherName] = useState("Formateur");
 
     const router = useRouter();
+
+    const handleUpdateUrls = async (studentId: string) => {
+        const wpUrl = wpInputs[studentId] !== undefined ? wpInputs[studentId] : students.find(s => s.id === studentId)?.wpUrl;
+        const prestaUrl = prestaInputs[studentId] !== undefined ? prestaInputs[studentId] : students.find(s => s.id === studentId)?.prestaUrl;
+
+        const { error } = await apiUpdateStudent(studentId, { wpUrl: wpUrl || "", prestaUrl: prestaUrl || "" });
+        if (!error) {
+            setStudents(prev => prev.map(s => s.id === studentId ? { ...s, wpUrl: wpUrl || "", prestaUrl: prestaUrl || "" } : s));
+            alert("Liens enregistrés avec succès !");
+        } else {
+            alert(error);
+        }
+    };
 
     const fetchStudents = useCallback(async () => {
         setLoading(true);
@@ -312,6 +328,39 @@ export default function TeacherDashboard() {
 
                                     {isExpanded && (
                                         <div className="border-t border-slate-100 bg-slate-50/50">
+                                            <div className="p-5 border-b border-slate-100">
+                                                <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-3">
+                                                    <Globe size={15} className="text-purple-500" />
+                                                    Liens des sites élèves
+                                                </h4>
+                                                <div className="flex flex-col md:flex-row gap-3">
+                                                    <div className="flex-1">
+                                                        <label className="block text-xs text-slate-500 font-medium mb-1">WordPress</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="https://wp.eleve.com"
+                                                            value={wpInputs[student.id] !== undefined ? wpInputs[student.id] : (student.wpUrl || "")}
+                                                            onChange={e => setWpInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                                                            className="w-full text-sm px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-purple-400 bg-white"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <label className="block text-xs text-slate-500 font-medium mb-1">PrestaShop</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="https://presta.eleve.com"
+                                                            value={prestaInputs[student.id] !== undefined ? prestaInputs[student.id] : (student.prestaUrl || "")}
+                                                            onChange={e => setPrestaInputs(prev => ({ ...prev, [student.id]: e.target.value }))}
+                                                            className="w-full text-sm px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-purple-400 bg-white"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-end">
+                                                        <button onClick={() => handleUpdateUrls(student.id)} className="bg-purple-100 text-purple-700 px-4 py-2 rounded-xl text-sm justify-center font-bold hover:bg-purple-200 transition-colors w-full md:w-auto flex items-center gap-2">
+                                                            <Save size={16} /> Enregistrer
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <div className="grid md:grid-cols-2 gap-0 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                                                 {/* Compétences */}
                                                 <div className="p-5">
@@ -328,7 +377,15 @@ export default function TeacherDashboard() {
                                                                         <CheckCircle2 size={13} className="text-green-500 mt-0.5 flex-shrink-0" />
                                                                         <div className="min-w-0">
                                                                             <div className="font-medium text-slate-700">{comp.label}</div>
-                                                                            {c.proof && <div className="text-slate-400 truncate mt-0.5">{c.proof}</div>}
+                                                                            {c.proof && (
+                                                                                c.proof.startsWith("http") ? (
+                                                                                    <a href={c.proof} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700 hover:underline truncate mt-0.5 block">
+                                                                                        <span className="flex items-center gap-1"><BookOpen size={10} /> Voir la preuve jointe</span>
+                                                                                    </a>
+                                                                                ) : (
+                                                                                    <div className="text-slate-400 truncate mt-0.5">{c.proof}</div>
+                                                                                )
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 ) : null;
