@@ -26,6 +26,7 @@ L'objectif est de dépasser le simple "cochage de case" pour aller vers une vali
 - [x] **Upload de Preuves :** L'élève upload une capture d'écran ou un lien direct vers sa réalisation.
 
 ### 2. Fonctionnalités Pédagogiques 🧠
+- [x] **Auto-évaluation en 4 niveaux :** L'élève s'auto-évalue (Novice, Apprenti, Compétent, Expert).
 - [x] **Quiz de vérification :** Avant de valider "SEO", l'élève doit répondre à 3 questions aléatoires sur Yoast/RankMath.
 - [ ] **Export Bilan E5 :** Générer un PDF récapitulatif ("Fiche d'activités") pour l'examen.
 
