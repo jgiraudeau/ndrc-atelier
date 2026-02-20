@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, MessageSquare, LogOut,
-  User, CheckCircle2, Trophy, Clock, ChevronRight, AlertCircle, ShoppingBag, Globe
+  User, CheckCircle2, Trophy, Clock, ChevronRight, AlertCircle, ShoppingBag, Globe, Target
 } from "lucide-react";
 import Link from "next/link";
 import { apiStudentDashboard, type StudentDashboardData } from "@/src/lib/api-client";
@@ -76,6 +76,7 @@ export default function StudentDashboard() {
 
         <nav className="flex-1 space-y-2">
           <NavItem icon={<LayoutDashboard size={20} />} label="Tableau de bord" active />
+          <NavItem icon={<Target size={20} />} label="Missions" href="/student/missions" />
           <NavItem icon={<Globe size={20} />} label="WordPress" href="/student/wordpress" />
           <NavItem icon={<ShoppingBag size={20} />} label="PrestaShop" href="/student/prestashop" />
         </nav>
@@ -267,7 +268,8 @@ export default function StudentDashboard() {
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 flex justify-around p-3 z-20 pb-safe">
-        <MobileNavItem icon={<LayoutDashboard size={24} />} active />
+        <MobileNavItem icon={<LayoutDashboard size={24} />} active href="/student" />
+        <MobileNavItem icon={<Target size={24} />} href="/student/missions" />
         <MobileNavItem icon={<Globe size={24} />} href="/student/wordpress" />
         <MobileNavItem icon={<ShoppingBag size={24} />} href="/student/prestashop" />
       </nav>
