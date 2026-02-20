@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
 import { useProgressStore } from "@/src/store/useProgressStore";
 import { useAuthStore } from "@/src/store/useAuthStore";
+import { apiGetProgress } from "@/src/lib/api-client";
 import { jsPDF } from "jspdf";
 
 // Configuration des styles par plateforme
@@ -43,6 +44,7 @@ export default function PlatformPage() {
     const router = useRouter();
     const { user } = useAuthStore();
     const [hydrated, setHydrated] = useState(false);
+    const [serverProgress, setServerProgress] = useState<Record<string, { acquired: boolean; status: number }>>({});
 
     // Gestion sécurisée du paramètre 'platform'
     const platformId = Array.isArray(params?.platform) ? params.platform[0] : params?.platform;
@@ -56,17 +58,24 @@ export default function PlatformPage() {
         (c) => c.platform === platformKey.toUpperCase()
     );
 
-    // Store Zustand
-    const { progress, toggleCompetency } = useProgressStore();
-
     useEffect(() => {
         useProgressStore.persist.rehydrate();
         useAuthStore.persist.rehydrate();
-        setHydrated(true);
+
+        apiGetProgress().then(({ data }) => {
+            if (data) {
+                const pMap: Record<string, { acquired: boolean; status: number }> = {};
+                data.forEach(p => {
+                    pMap[p.competencyId] = { acquired: p.acquired, status: p.status || 0 };
+                });
+                setServerProgress(pMap);
+            }
+            setHydrated(true);
+        });
     }, []);
 
     // Calcul progression locale
-    const acquiredCount = platformCompetencies.filter(c => progress[c.id]).length;
+    const acquiredCount = platformCompetencies.filter(c => serverProgress[c.id]?.acquired).length;
     const totalCount = platformCompetencies.length;
     const percentage = totalCount > 0 ? Math.round((acquiredCount / totalCount) * 100) : 0;
 
@@ -186,7 +195,30 @@ export default function PlatformPage() {
                             {/* Chemin des compétences (Snake Layout) */}
                             <div className="flex flex-col items-center gap-6 relative z-10">
                                 {levelCompetencies.map((comp, i) => {
-                                    const isCompleted = progress[comp.id] || false;
+                                    const progressData = serverProgress[comp.id];
+                                    const status = progressData?.status || 0;
+
+                                    let cardBg = "bg-white border-slate-200 text-slate-700 hover:border-slate-300";
+                                    let circleBg = "bg-slate-50 border-slate-100 text-slate-300";
+                                    let chevronColor = "text-slate-300";
+
+                                    if (status === 1) { // Novice
+                                        cardBg = "bg-slate-50 border-slate-300 text-slate-800";
+                                        circleBg = "bg-slate-100 border-slate-400 text-slate-600";
+                                        chevronColor = "text-slate-500";
+                                    } else if (status === 2) { // Apprenti
+                                        cardBg = "bg-blue-50 border-blue-300 text-blue-900";
+                                        circleBg = "bg-blue-100 border-blue-400 text-blue-600";
+                                        chevronColor = "text-blue-500";
+                                    } else if (status === 3) { // Compétent
+                                        cardBg = "bg-green-50 border-green-300 text-green-900";
+                                        circleBg = "bg-green-100 border-green-400 text-green-600";
+                                        chevronColor = "text-green-500";
+                                    } else if (status === 4) { // Expert
+                                        cardBg = "bg-purple-50 border-purple-300 text-purple-900";
+                                        circleBg = "bg-purple-100 border-purple-400 text-purple-600";
+                                        chevronColor = "text-purple-500";
+                                    }
 
                                     return (
                                         <motion.div
@@ -196,43 +228,36 @@ export default function PlatformPage() {
                                             viewport={{ once: true }}
                                             className="relative group w-full max-w-[320px]"
                                         >
-                                            <div
+                                            <Link
+                                                href={`/student/competency/${comp.id}`}
                                                 className={cn(
-                                                    "w-full p-4 rounded-2xl border-b-4 text-left transition-all active:scale-95 active:border-b-0 active:translate-y-1 flex items-start gap-4 cursor-pointer",
-                                                    isCompleted
-                                                        ? "bg-green-500 border-green-700 text-white"
-                                                        : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                                                    "w-full p-4 rounded-2xl border-b-4 text-left transition-all active:scale-95 active:border-b-0 active:translate-y-1 flex items-start gap-4 cursor-pointer block",
+                                                    cardBg
                                                 )}
                                             >
-                                                {/* Zone Checkbox (Toggle) */}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleCompetency(comp.id);
-                                                    }}
+                                                {/* Zone Checkbox (Visuelle via Status) */}
+                                                <div
                                                     className={cn(
-                                                        "w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center border-2 hover:scale-110 transition-transform",
-                                                        isCompleted
-                                                            ? "bg-green-600 border-green-400 text-white"
-                                                            : "bg-slate-50 border-slate-100 text-slate-300"
+                                                        "w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-transform",
+                                                        circleBg
                                                     )}>
-                                                    {isCompleted ? <Check size={20} className="stroke-[3]" /> : <div className="w-3 h-3 rounded-full bg-slate-200" />}
-                                                </button>
+                                                    {status > 0 ? <Check size={20} className="stroke-[3]" /> : <div className="w-3 h-3 rounded-full bg-slate-200" />}
+                                                </div>
 
-                                                {/* Zone Lien (Détails) */}
-                                                <Link href={`/student/competency/${comp.id}`} className="flex-1 min-w-0">
+                                                {/* Zone Détails */}
+                                                <div className="flex-1 min-w-0">
                                                     <div className="text-xs font-bold opacity-70 mb-1 uppercase tracking-wider">
                                                         {comp.category}
                                                     </div>
-                                                    <div className="font-bold leading-tight text-sm hover:underline decoration-2 underline-offset-2">
+                                                    <div className="font-bold leading-tight text-sm group-hover:underline decoration-2 underline-offset-2">
                                                         {comp.label}
                                                     </div>
-                                                </Link>
+                                                </div>
 
-                                                <Link href={`/student/competency/${comp.id}`} className={cn("mt-1", isCompleted ? "text-green-200" : "text-slate-300")}>
+                                                <div className={cn("mt-1", chevronColor)}>
                                                     <ChevronDown className="-rotate-90" size={20} />
-                                                </Link>
-                                            </div>
+                                                </div>
+                                            </Link>
 
                                             {/* Line connector */}
                                             {i < levelCompetencies.length - 1 && (
