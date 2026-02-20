@@ -240,7 +240,7 @@ export default function CompetencyProofPage() {
                             ) : isSaved ? (
                                 <><CheckCircle size={24} /> Enregistré !</>
                             ) : isAcquired ? (
-                                <><Save size={20} /> Modifier / Désacquérir</>
+                                <><Save size={20} /> Mettre à jour la preuve</>
                             ) : (
                                 <><Save size={20} /> Valider &amp; Enregistrer</>
                             )}
