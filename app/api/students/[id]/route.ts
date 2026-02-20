@@ -3,11 +3,12 @@ import { prisma } from "@/src/lib/prisma";
 import { requireAuth, apiError, apiSuccess } from "@/src/lib/api-helpers";
 
 // PATCH /api/students/[id]
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
     const auth = await requireAuth(request, ["TEACHER"]);
     if ("status" in auth) return auth;
 
     try {
+        const params = await context.params;
         const studentId = params.id;
         const body = await request.json();
 
