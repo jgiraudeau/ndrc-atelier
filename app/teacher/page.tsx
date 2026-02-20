@@ -372,11 +372,24 @@ export default function TeacherDashboard() {
                                                         <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                                                             {student.competencies.filter(c => c.acquired).map(c => {
                                                                 const comp = ALL_COMPETENCIES.find(x => x.id === c.competencyId);
+                                                                const STATUS_LABELS: Record<number, { label: string; color: string; bg: string }> = {
+                                                                    1: { label: "Novice", color: "text-slate-600", bg: "bg-slate-100" },
+                                                                    2: { label: "Apprenti", color: "text-blue-600", bg: "bg-blue-50" },
+                                                                    3: { label: "Compétent", color: "text-green-600", bg: "bg-green-50" },
+                                                                    4: { label: "Expert", color: "text-purple-600", bg: "bg-purple-50" }
+                                                                };
+                                                                const s = STATUS_LABELS[c.status] || STATUS_LABELS[3];
+
                                                                 return comp ? (
                                                                     <div key={c.competencyId} className="flex items-start gap-2 text-xs py-1.5 border-b border-slate-100 last:border-0">
                                                                         <CheckCircle2 size={13} className="text-green-500 mt-0.5 flex-shrink-0" />
                                                                         <div className="min-w-0">
-                                                                            <div className="font-medium text-slate-700">{comp.label}</div>
+                                                                            <div className="font-medium text-slate-700 flex items-center gap-2">
+                                                                                {comp.label}
+                                                                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${s.bg} ${s.color}`}>
+                                                                                    {s.label}
+                                                                                </span>
+                                                                            </div>
                                                                             {c.proof && (
                                                                                 c.proof.startsWith("http") ? (
                                                                                     <a href={c.proof} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700 hover:underline truncate mt-0.5 block">

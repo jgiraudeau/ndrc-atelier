@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
         progress.map((p: any) => ({
             competencyId: p.competencyId,
             acquired: p.acquired,
+            status: p.status,
             proof: p.proof,
             updatedAt: p.updatedAt.toISOString(),
         }))
@@ -29,21 +30,22 @@ export async function POST(request: NextRequest) {
     const studentId = auth.payload.sub;
 
     try {
-        const { competencyId, acquired, proof } = await request.json();
+        const { competencyId, acquired, status, proof } = await request.json();
 
-        if (!competencyId || typeof acquired !== "boolean") {
-            return apiError("competencyId et acquired (boolean) requis");
+        if (!competencyId || typeof acquired !== "boolean" || typeof status !== "number") {
+            return apiError("competencyId, acquired (boolean), et status (number) requis");
         }
 
         const record = await prisma.progress.upsert({
             where: { studentId_competencyId: { studentId, competencyId } },
-            create: { studentId, competencyId, acquired, proof: proof || null },
-            update: { acquired, proof: proof || null },
+            create: { studentId, competencyId, acquired, status, proof: proof || null },
+            update: { acquired, status, proof: proof || null },
         });
 
         return apiSuccess({
             competencyId: record.competencyId,
             acquired: record.acquired,
+            status: record.status,
             proof: record.proof,
             updatedAt: record.updatedAt.toISOString(),
         });

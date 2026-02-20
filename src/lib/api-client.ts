@@ -77,6 +77,7 @@ export interface StudentWithProgress {
     competencies: Array<{
         competencyId: string;
         acquired: boolean;
+        status: number;
         proof: string | null;
         updatedAt: string;
     }>;
@@ -115,6 +116,7 @@ export async function apiImportStudents(
 export interface ProgressRecord {
     competencyId: string;
     acquired: boolean;
+    status: number;
     proof: string | null;
     updatedAt: string;
 }
@@ -154,10 +156,12 @@ export async function apiStudentDashboard() {
     return apiFetch<StudentDashboardData>("/api/student/dashboard");
 }
 
-export async function apiSaveProgress(competencyId: string, acquired: boolean, proof?: string) {
+export async function apiSaveProgress(competencyId: string, status: number, proof?: string) {
+    // Legacy support for acquired: consider >= 3 (Competent) as acquired
+    const acquired = status >= 3;
     return apiFetch<ProgressRecord>(
         "/api/progress",
-        { method: "POST", body: JSON.stringify({ competencyId, acquired, proof }) }
+        { method: "POST", body: JSON.stringify({ competencyId, acquired, status, proof }) }
     );
 }
 

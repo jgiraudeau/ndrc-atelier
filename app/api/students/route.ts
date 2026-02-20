@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
                 competencies: s.progress.map((p: any) => ({
                     competencyId: p.competencyId,
                     acquired: p.acquired,
+                    status: p.status,
                     proof: p.proof,
                     updatedAt: p.updatedAt.toISOString(),
                 })),

@@ -68,6 +68,7 @@ model Progress {
   studentId    String
   competencyId String                   // ex: "wp-niv1-identite"
   acquired     Boolean  @default(false)
+  status       Int      @default(0)       // 0=Non évalué, 1=Novice, 2=Apprenti, 3=Compétent, 4=Expert
   proof        String?                   // URL ou commentaire de l'élève
   updatedAt    DateTime @updatedAt
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle, Save, Globe, UploadCloud, Loader2, Image as ImageIcon, BrainCircuit, X } from "lucide-react";
+import { ArrowLeft, CheckCircle, Save, Globe, UploadCloud, Loader2, Image as ImageIcon, BrainCircuit, X, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiGetProgress, apiSaveProgress, type ProgressRecord } from "@/src/lib/api-client";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
@@ -20,6 +20,7 @@ export default function CompetencyProofPage() {
     const [proofInput, setProofInput] = useState("");
     const [isSaved, setIsSaved] = useState(false);
     const [isAcquired, setIsAcquired] = useState(false);
+    const [status, setStatus] = useState<number>(0);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -42,6 +43,7 @@ export default function CompetencyProofPage() {
                 const record = data.find((p: ProgressRecord) => p.competencyId === competencyId);
                 if (record) {
                     setIsAcquired(record.acquired);
+                    setStatus(record.status || 0);
                     setProofInput(record.proof || "");
                 }
             }
@@ -63,18 +65,21 @@ export default function CompetencyProofPage() {
     const lightBg = isWordPress ? "bg-[#e5f5ff]" : "bg-[#ffe5f0]";
 
     const handleSave = async (skipQuizCheck = false) => {
-        if (!competencyId || isSaving) return;
+        if (!competencyId || isSaving || status === 0) {
+            if (status === 0) alert("N'oublie pas de choisir ton niveau d'auto-évaluation !");
+            return;
+        }
 
-        const newAcquired = !isAcquired; // toggle
+        const newAcquired = status >= 3;
 
         // Vérification quiz
-        if (newAcquired && quizQuestions && !quizPassed && skipQuizCheck !== true) {
+        if (newAcquired && !isAcquired && quizQuestions && !quizPassed && skipQuizCheck !== true) {
             setShowQuiz(true);
             return;
         }
 
         setIsSaving(true);
-        const { data, error } = await apiSaveProgress(competencyId, newAcquired, proofInput);
+        const { data, error } = await apiSaveProgress(competencyId, status, proofInput);
 
         setIsSaving(false);
 
@@ -84,6 +89,7 @@ export default function CompetencyProofPage() {
         }
 
         setIsAcquired(data.acquired);
+        setStatus(data.status);
         setIsSaved(true);
 
         if (data.acquired) {
@@ -192,6 +198,43 @@ export default function CompetencyProofPage() {
                         </p>
                     </div>
 
+                    {/* Auto-évaluation */}
+                    <section className="space-y-4">
+                        <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                            <Star className="text-yellow-400" size={18} fill="currentColor" />
+                            Auto-évaluation
+                        </h3>
+                        <p className="text-sm text-slate-500 mb-2">Comment évalues-tu ton niveau de maîtrise ?</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { val: 1, title: "Novice", desc: "Je découvre" },
+                                { val: 2, title: "Apprenti", desc: "Je m'entraîne" },
+                                { val: 3, title: "Compétent", desc: "Autonome" },
+                                { val: 4, title: "Expert", desc: "Je maîtrise" },
+                            ].map(level => {
+                                const isSelected = status === level.val;
+                                let colors = "border-slate-200 text-slate-500 hover:border-indigo-300 hover:bg-indigo-50/50";
+                                if (isSelected) {
+                                    if (level.val === 1) colors = "border-slate-500 bg-slate-50 text-slate-800 shadow-sm";
+                                    else if (level.val === 2) colors = "border-blue-500 bg-blue-50 text-blue-800 shadow-sm";
+                                    else if (level.val === 3) colors = "border-green-500 bg-green-50 text-green-800 shadow-sm";
+                                    else if (level.val === 4) colors = "border-purple-500 bg-purple-50 text-purple-800 shadow-sm";
+                                }
+
+                                return (
+                                    <button
+                                        key={level.val}
+                                        onClick={() => setStatus(level.val)}
+                                        className={cn("flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center", colors)}
+                                    >
+                                        <div className="font-black text-sm">{level.title}</div>
+                                        <div className="text-[10px] opacity-70 font-medium">{level.desc}</div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </section>
+
                     {/* Zone preuve */}
                     <section className="space-y-4">
                         <h3 className="font-bold text-slate-700 flex items-center gap-2">
@@ -226,13 +269,13 @@ export default function CompetencyProofPage() {
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => handleSave(false)}
-                            disabled={isSaving}
+                            disabled={isSaving || status === 0}
                             className={cn(
                                 "w-full py-4 rounded-xl font-bold text-white shadow-md flex items-center justify-center gap-2 text-lg transition-all",
                                 isSaved ? "bg-green-500 shadow-green-200"
                                     : isAcquired ? "bg-orange-500 shadow-orange-200"
                                         : bgColor,
-                                isSaving && "opacity-60 cursor-not-allowed"
+                                (isSaving || status === 0) && "opacity-60 cursor-not-allowed"
                             )}
                         >
                             {isSaving ? (
