@@ -16,11 +16,13 @@ export default function MissionsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
 
-    const [needsPractice, setNeedsPractice] = useState<typeof ALL_COMPETENCIES>([]);
     const [selectedContext, setSelectedContext] = useState("");
     const [selectedPlatform, setSelectedPlatform] = useState<"WORDPRESS" | "PRESTASHOP" | "ALL">("WORDPRESS");
+    const [selectedLevel, setSelectedLevel] = useState<1 | 2 | 3 | 4>(2);
+    const [selectedCategory, setSelectedCategory] = useState<string>("Toutes");
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-    const [missionMarkdown, setMissionMarkdown] = useState<string | null>(null);
+    const [missionMarkdown, setMissionMarkdown] = useState<{ text: string, ids: string[] } | null>(null);
     const [errorMsg, setErrorMsg] = useState("");
     const [savedMission, setSavedMission] = useState<string | null>(null);
     const [justSaved, setJustSaved] = useState(false);
@@ -35,36 +37,14 @@ export default function MissionsPage() {
         apiGetProgress().then(({ data, error }) => {
             setIsLoading(false);
             if (error) { console.error("Erreur serveur", error); return; }
-
-            if (data) {
-                const progressMap: Record<string, { status: number }> = {};
-                data.forEach((p: ProgressRecord) => {
-                    progressMap[p.competencyId] = { status: p.status || 0 };
-                });
-
-                const lacking = ALL_COMPETENCIES.filter(c => {
-                    const status = progressMap[c.id]?.status || 0;
-                    return status < 3;
-                });
-
-                setNeedsPractice(lacking);
-            }
         });
     }, [router]);
 
     const handleGenerate = async () => {
-        let targeting = needsPractice;
-        if (selectedPlatform !== "ALL") {
-            targeting = needsPractice.filter(c => c.platform === selectedPlatform);
-        }
-
-        if (targeting.length === 0) {
-            setErrorMsg("Tu as des compétences Expertes/Compétentes partout pour cette plateforme ! Bravo !");
+        if (selectedIds.length === 0) {
+            setErrorMsg("Sélectionne au moins une compétence pour ta mission.");
             return;
         }
-
-        const shuffled = [...targeting].sort(() => 0.5 - Math.random());
-        const selectedIds = shuffled.slice(0, 3).map(c => c.id);
 
         setGenerating(true);
         setErrorMsg("");
@@ -75,12 +55,16 @@ export default function MissionsPage() {
             const res = await fetch("/api/missions/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ competencyIds: selectedIds, context: selectedContext })
+                body: JSON.stringify({
+                    competencyIds: selectedIds,
+                    context: selectedContext,
+                    level: selectedLevel
+                })
             });
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Erreur serveur");
-            setMissionMarkdown(data.mission);
+            setMissionMarkdown({ text: data.mission, ids: selectedIds });
         } catch (err: any) {
             setErrorMsg(err.message || "Impossible de joindre Gemini pour générer cette mission.");
         } finally {
@@ -89,7 +73,7 @@ export default function MissionsPage() {
     };
 
     const handleSaveMission = (text: string) => {
-        localStorage.setItem(SAVED_MISSION_KEY, text);
+        localStorage.setItem(SAVED_MISSION_KEY, JSON.stringify({ text, ids: selectedIds }));
         setSavedMission(text);
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
@@ -100,6 +84,26 @@ export default function MissionsPage() {
             <Loader2 className="animate-spin text-indigo-500 w-8 h-8" />
         </div>
     );
+
+    // Derived data for the form
+    const platformCompetencies = ALL_COMPETENCIES.filter(c => selectedPlatform === "ALL" || c.platform === selectedPlatform);
+    const categories = ["Toutes", ...Array.from(new Set(platformCompetencies.map(c => c.category)))];
+
+    // Auto-select "Toutes" if current category doesn't exist in new platform
+    useEffect(() => {
+        if (!categories.includes(selectedCategory)) {
+            setSelectedCategory("Toutes");
+        }
+        setSelectedIds([]); // Reset selection on platform change
+    }, [selectedPlatform]);
+
+    const displayCompetencies = platformCompetencies.filter(c => selectedCategory === "Toutes" || c.category === selectedCategory);
+
+    const toggleCompetency = (id: string) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
 
     return (
         <main className="min-h-screen bg-slate-50 font-sans pb-20">
@@ -123,9 +127,13 @@ export default function MissionsPage() {
             <div className="max-w-md mx-auto p-6 space-y-6">
                 {missionMarkdown ? (
                     <MissionResult
-                        markdown={missionMarkdown}
-                        onReset={() => setMissionMarkdown(null)}
-                        onSave={() => handleSaveMission(missionMarkdown)}
+                        markdown={missionMarkdown.text}
+                        targetIds={missionMarkdown.ids}
+                        onReset={() => {
+                            setMissionMarkdown(null);
+                            setSelectedIds([]);
+                        }}
+                        onSave={() => handleSaveMission(missionMarkdown.text)}
                         justSaved={justSaved}
                     />
                 ) : (
@@ -135,9 +143,18 @@ export default function MissionsPage() {
                                 <BookmarkCheck size={20} className="text-amber-600 flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-bold text-amber-800">Mission sauvegardée</p>
-                                    <p className="text-xs text-amber-600 truncate">{savedMission.slice(0, 80)}...</p>
+                                    <p className="text-xs text-amber-600 truncate">
+                                        {savedMission.startsWith("{") ? JSON.parse(savedMission).text.slice(0, 80) : savedMission.slice(0, 80)}...
+                                    </p>
                                 </div>
-                                <button onClick={() => setMissionMarkdown(savedMission)} className="text-xs font-bold text-amber-700 underline whitespace-nowrap ml-2">Revoir</button>
+                                <button onClick={() => {
+                                    if (savedMission.startsWith("{")) {
+                                        const parsed = JSON.parse(savedMission);
+                                        setMissionMarkdown({ text: parsed.text, ids: parsed.ids || [] });
+                                    } else {
+                                        setMissionMarkdown({ text: savedMission, ids: [] });
+                                    }
+                                }} className="text-xs font-bold text-amber-700 underline whitespace-nowrap ml-2">Revoir</button>
                             </div>
                         )}
 
@@ -145,15 +162,16 @@ export default function MissionsPage() {
                             <div className="bg-amber-100 p-4 rounded-full text-amber-600">
                                 <Sparkles size={32} />
                             </div>
-                            <h2 className="text-xl font-black text-slate-800">Générer un Cas Pratique</h2>
+                            <h2 className="text-xl font-black text-slate-800">Créer une Mission</h2>
                             <p className="text-slate-500 text-sm">
-                                L'IA analyse tes compétences ({needsPractice.length} à améliorer) et crée un scénario d'entreprise sur mesure pour t'entraîner !
+                                Paramètre les objectifs de ton entraînement. L'IA générera un scénario sur mesure.
                             </p>
                         </div>
 
-                        <div className="space-y-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                        <div className="space-y-6 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                            {/* Plateforme */}
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Plateforme ciblée</label>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">1. Plateforme ciblée</label>
                                 <div className="flex bg-slate-100 p-1 rounded-xl">
                                     <button
                                         onClick={() => setSelectedPlatform("WORDPRESS")}
@@ -166,15 +184,80 @@ export default function MissionsPage() {
                                 </div>
                             </div>
 
+                            {/* Niveau */}
                             <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">2. Niveau d'exigence</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { val: 1, label: "Découverte", desc: "Très très guidé" },
+                                        { val: 2, label: "Construction", desc: "Cadre structuré" },
+                                        { val: 3, label: "Gestion", desc: "Objectif métier" },
+                                        { val: 4, label: "Expertise", desc: "Scénario complexe" }
+                                    ].map(lvl => (
+                                        <button
+                                            key={lvl.val}
+                                            onClick={() => setSelectedLevel(lvl.val as 1 | 2 | 3 | 4)}
+                                            className={cn(
+                                                "p-3 rounded-xl border text-left transition-all relative overflow-hidden",
+                                                selectedLevel === lvl.val
+                                                    ? "bg-indigo-50 border-indigo-400 text-indigo-900 shadow-sm ring-1 ring-indigo-400"
+                                                    : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                                            )}
+                                        >
+                                            <div className="font-bold text-sm mb-1 text-slate-800">Niveau {lvl.val}</div>
+                                            <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{lvl.label}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Compétences */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="block text-sm font-bold text-slate-700">3. Compétences à travailler</label>
+                                    <span className="text-xs font-bold text-slate-400 p-1 bg-slate-100 rounded-md">{selectedIds.length} sélectionnées</span>
+                                </div>
+
+                                <select
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all outline-none text-slate-700 mb-3"
+                                    value={selectedCategory}
+                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                >
+                                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                </select>
+
+                                <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                    {displayCompetencies.map(comp => {
+                                        const isSelected = selectedIds.includes(comp.id);
+                                        return (
+                                            <div
+                                                key={comp.id}
+                                                onClick={() => toggleCompetency(comp.id)}
+                                                className={cn(
+                                                    "p-3 rounded-xl border cursor-pointer transition-all flex gap-3 select-none",
+                                                    isSelected ? "bg-indigo-600 border-indigo-600 text-white shadow-md" : "bg-white border-slate-200 hover:border-indigo-300 text-slate-700 hover:bg-slate-50"
+                                                )}
+                                            >
+                                                <div className={cn("w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border", isSelected ? "bg-white border-white text-indigo-600" : "border-slate-300")}>
+                                                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
+                                                </div>
+                                                <span className="text-xs font-medium leading-relaxed">{comp.label}</span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Contexte */}
+                            <div className="pt-2 border-t border-slate-100">
                                 <label className="block text-sm font-bold text-slate-700 mb-2">
-                                    Contexte d'Entreprise <span className="text-slate-400 font-normal">(Optionnel)</span>
+                                    4. Contexte d'Entreprise <span className="text-slate-400 font-normal">(Optionnel)</span>
                                 </label>
                                 <input
                                     type="text"
                                     value={selectedContext}
                                     onChange={(e) => setSelectedContext(e.target.value)}
-                                    placeholder="Ex: Boutique de sneakers, Agence web, Fleuriste local..."
+                                    placeholder="Ex: Boutique de sneakers, Agence web..."
                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                                 />
                             </div>
@@ -185,8 +268,8 @@ export default function MissionsPage() {
 
                             <button
                                 onClick={handleGenerate}
-                                disabled={generating || needsPractice.length === 0}
-                                className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-50 flex justify-center items-center gap-2"
+                                disabled={generating || selectedIds.length === 0}
+                                className="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-50 flex justify-center items-center gap-2"
                             >
                                 {generating
                                     ? <><Loader2 size={18} className="animate-spin" /> Préparation de la mission...</>
@@ -201,8 +284,9 @@ export default function MissionsPage() {
     );
 }
 
-function MissionResult({ markdown, onReset, onSave, justSaved }: {
+function MissionResult({ markdown, targetIds, onReset, onSave, justSaved }: {
     markdown: string;
+    targetIds: string[];
     onReset: () => void;
     onSave: () => void;
     justSaved: boolean;
@@ -316,12 +400,24 @@ ${formatMarkdown(markdown)}
                     <FileText size={16} /> Télécharger Word
                 </button>
 
-                <Link
-                    href="/student"
-                    className="col-span-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-green-200/50 flex items-center justify-center gap-2 transition-all"
-                >
-                    <LayoutDashboard size={18} /> À moi de jouer → Tableau de bord
-                </Link>
+                {/* Validation rapide */}
+                {targetIds && targetIds.length > 0 && (
+                    <div className="col-span-2 bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex flex-col gap-3">
+                        <p className="text-xs font-bold text-indigo-800 uppercase tracking-wider">Mission terminée ?</p>
+                        <p className="text-sm text-indigo-700 mb-1">N'oublie pas d'aller valider les compétences que tu viens de t'entraîner à maîtriser :</p>
+                        <div className="flex flex-col gap-2">
+                            {targetIds.map(id => {
+                                const c = ALL_COMPETENCIES.find(comp => comp.id === id);
+                                if (!c) return null;
+                                return (
+                                    <Link key={id} href={`/student/competency/${id}`} className="block w-full bg-white p-3 rounded-lg border border-indigo-100 text-xs font-bold text-slate-700 hover:border-indigo-400 hover:shadow-sm transition-all focus:outline-indigo-600">
+                                        👉 {c.label}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
