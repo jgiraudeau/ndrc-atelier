@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { requireAuth, apiError, apiSuccess } from "@/src/lib/api-helpers";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
 import { GoogleGenAI } from "@google/genai";
+import fs from "fs";
+import path from "path";
 
 export async function POST(request: NextRequest) {
     try {
@@ -74,9 +76,40 @@ L'e-mail doit globalement :
 Génère uniquement le contenu de cet email.
 `;
 
+        // 1. Charger le catalogue RAG
+        let catalog: any[] = [];
+        try {
+            const catalogPath = path.join(process.cwd(), "knowledge-catalog.json");
+            if (fs.existsSync(catalogPath)) {
+                catalog = JSON.parse(fs.readFileSync(catalogPath, "utf-8"));
+            }
+        } catch (e) {
+            console.error("Impossible de lire le catalogue de connaissances : ", e);
+        }
+
+        // 2. Filtrer les documents pertinents pour la plateforme choisie
+        const relevantDocs = catalog.filter(doc =>
+            doc.filename.toLowerCase().includes(platform.toLowerCase())
+        );
+
+        // 3. Préparer les parties (parts) du message pour l'API Gemini
+        const parts: any[] = [];
+
+        if (relevantDocs.length > 0) {
+            parts.push({ text: "Voici les fiches de cours officielles (Knowledge Base) : " });
+            relevantDocs.forEach(doc => {
+                parts.push({
+                    fileData: { fileUri: doc.uri, mimeType: doc.mimeType }
+                });
+            });
+            parts.push({ text: "\nTu dois IMPEÉRATIVEMENT t'assurer que les tâches demandées dans la mission sont faisables et correspondent à ce qui est enseigné dans ces fiches de cours. Inspire-toi du vocabulaire utilisé.\n" });
+        }
+
+        parts.push({ text: prompt });
+
         const response = await ai.models.generateContent({
             model: "gemini-2.5-pro",
-            contents: prompt,
+            contents: parts,
             config: {
                 temperature: 0.7,
             },

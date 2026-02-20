@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "filename": "Tutoriel_PrestaShop_BTS_NDRC_2026.pdf",
+    "uri": "https://generativelanguage.googleapis.com/v1beta/files/7xewc80tcm2p",
+    "name": "files/7xewc80tcm2p",
+    "mimeType": "application/pdf"
+  },
+  {
+    "filename": "Tutoriel_WordPress_BTS_NDRC_2026.pdf",
+    "uri": "https://generativelanguage.googleapis.com/v1beta/files/68tgh1wz8fdb",
+    "name": "files/68tgh1wz8fdb",
+    "mimeType": "application/pdf"
+  }
+]
