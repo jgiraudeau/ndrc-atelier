@@ -182,3 +182,34 @@ export async function apiDeleteComment(commentId: string) {
         { method: "DELETE" }
     );
 }
+
+// =============================================================
+// ADMIN
+// =============================================================
+
+export async function apiAdminLogin(email: string, password: string) {
+    return apiFetch<{ token: string; name: string; role: string }>(
+        "/api/auth/admin/login",
+        { method: "POST", body: JSON.stringify({ email, password }) }
+    );
+}
+
+export interface TeacherAdmin {
+    id: string;
+    email: string;
+    name: string;
+    status: string;
+    createdAt: string;
+    _count: { students: number; classes: number };
+}
+
+export async function apiGetTeachers() {
+    return apiFetch<TeacherAdmin[]>("/api/admin/teachers");
+}
+
+export async function apiManageTeacher(teacherId: string, action: "approve" | "reject" | "delete") {
+    return apiFetch<{ message: string }>(
+        "/api/admin/teachers",
+        { method: "PATCH", body: JSON.stringify({ teacherId, action }) }
+    );
+}

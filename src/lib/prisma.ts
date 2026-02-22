@@ -5,10 +5,11 @@ import { PrismaPg } from "@prisma/adapter-pg";
 // Requis car Prisma 7 utilise le moteur "client" qui nécessite un adapter explicite
 
 function createPrismaClient() {
-    const connectionString =
-        process.env.DATABASE_URL ||
-        process.env.DATABASE_PUBLIC_URL ||
-        "";
+    // En production (Vercel/Railway), utiliser l'URL interne ; en local, l'URL publique
+    const isProduction = process.env.NODE_ENV === "production";
+    const connectionString = isProduction
+        ? (process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL || "")
+        : (process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL || "");
 
     const adapter = new PrismaPg({ connectionString });
     return new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0]);

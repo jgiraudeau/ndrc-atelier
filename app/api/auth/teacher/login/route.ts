@@ -26,6 +26,14 @@ export async function POST(request: NextRequest) {
             return apiError("Identifiants incorrects", 401);
         }
 
+        if (teacher.status === "pending") {
+            return apiError("Votre compte est en attente de validation par l'administrateur", 403);
+        }
+
+        if (teacher.status === "rejected") {
+            return apiError("Votre compte a été refusé par l'administrateur", 403);
+        }
+
         const token = await signToken({
             sub: teacher.id,
             role: "TEACHER",

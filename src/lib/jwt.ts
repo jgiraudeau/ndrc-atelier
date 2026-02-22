@@ -6,7 +6,7 @@ const SECRET = new TextEncoder().encode(
 
 export type JWTPayload = {
     sub: string;       // ID de l'utilisateur (teacher ou student)
-    role: "TEACHER" | "STUDENT";
+    role: "TEACHER" | "STUDENT" | "ADMIN";
     name: string;
     classCode?: string; // Pour les élèves uniquement
     exp?: number;

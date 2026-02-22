@@ -13,6 +13,7 @@ export default function TeacherLoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -28,6 +29,16 @@ export default function TeacherLoginPage() {
 
         if (apiErr || !data) {
             setError(apiErr || "Erreur de connexion");
+            return;
+        }
+
+        // Cas inscription : compte en attente de validation
+        if ("pending" in data && (data as any).pending) {
+            setError("");
+            setSuccessMessage((data as any).message);
+            setMode("login");
+            setName("");
+            setPassword("");
             return;
         }
 
@@ -114,9 +125,15 @@ export default function TeacherLoginPage() {
                         </div>
                     </div>
 
+                    {successMessage && (
+                        <div className="text-green-700 text-xs font-bold text-center bg-green-50 p-3 rounded-lg">
+                            {successMessage}
+                        </div>
+                    )}
+
                     {error && (
                         <div className="text-red-500 text-xs font-bold text-center bg-red-50 p-3 rounded-lg">
-                            ⚠️ {error}
+                            {error}
                         </div>
                     )}
 

@@ -6,7 +6,7 @@ import { verifyToken, extractToken, JWTPayload } from "@/src/lib/jwt";
  */
 export async function requireAuth(
     request: NextRequest,
-    allowedRoles?: Array<"TEACHER" | "STUDENT">
+    allowedRoles?: Array<"TEACHER" | "STUDENT" | "ADMIN">
 ): Promise<{ payload: JWTPayload } | NextResponse> {
     const token = extractToken(request);
 
