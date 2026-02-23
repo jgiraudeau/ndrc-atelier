@@ -79,13 +79,7 @@ export default function MissionsPage() {
         setTimeout(() => setJustSaved(false), 2000);
     };
 
-    if (isLoading) return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-            <Loader2 className="animate-spin text-indigo-500 w-8 h-8" />
-        </div>
-    );
-
-    // Derived data for the form
+    // Derived data for the form (must be before hooks that depend on them)
     const platformCompetencies = ALL_COMPETENCIES.filter(c => selectedPlatform === "ALL" || c.platform === selectedPlatform);
     const categories = ["Toutes", ...Array.from(new Set(platformCompetencies.map(c => c.category)))];
 
@@ -98,6 +92,12 @@ export default function MissionsPage() {
     }, [selectedPlatform]);
 
     const displayCompetencies = platformCompetencies.filter(c => selectedCategory === "Toutes" || c.category === selectedCategory);
+
+    if (isLoading) return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+            <Loader2 className="animate-spin text-indigo-500 w-8 h-8" />
+        </div>
+    );
 
     const toggleCompetency = (id: string) => {
         setSelectedIds(prev =>
