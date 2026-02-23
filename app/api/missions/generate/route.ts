@@ -76,40 +76,60 @@ L'e-mail doit globalement :
 Génère uniquement le contenu de cet email.
 `;
 
-        // 1. Chercher les PDFs locaux pertinents dans le dossier knowledge/
+        // 1. Chercher les PDFs pertinents dans knowledge/
+        // Structure : knowledge/wordpress/, knowledge/prestashop/, knowledge/seo/, knowledge/sujets/
         const knowledgeDir = path.join(process.cwd(), "knowledge");
-        const relevantPdfs: { filePath: string; filename: string }[] = [];
+        const coursePdfs: { filePath: string; filename: string }[] = [];
+        const sujetsPdfs: { filePath: string; filename: string }[] = [];
 
         if (fs.existsSync(knowledgeDir)) {
-            const scanDir = (dir: string) => {
-                for (const entry of fs.readdirSync(dir)) {
-                    const fullPath = path.join(dir, entry);
-                    if (fs.statSync(fullPath).isDirectory()) {
-                        scanDir(fullPath);
-                    } else if (
-                        entry.endsWith(".pdf") &&
-                        entry.toLowerCase().includes(platform.toLowerCase())
-                    ) {
-                        relevantPdfs.push({ filePath: fullPath, filename: entry });
+            // Dossiers de cours liés à la plateforme sélectionnée
+            const platformFolders: Record<string, string[]> = {
+                WORDPRESS: ["wordpress", "seo"],    // YoastSEO = plugin WordPress
+                PRESTASHOP: ["prestashop"],
+            };
+            const folders = platformFolders[platform] || [];
+
+            for (const folder of folders) {
+                const folderPath = path.join(knowledgeDir, folder);
+                if (fs.existsSync(folderPath)) {
+                    for (const file of fs.readdirSync(folderPath)) {
+                        if (file.endsWith(".pdf")) {
+                            coursePdfs.push({ filePath: path.join(folderPath, file), filename: file });
+                        }
                     }
                 }
-            };
-            scanDir(knowledgeDir);
+            }
+
+            // Dossier sujets d'examen (inclus pour toutes les plateformes)
+            const sujetsPath = path.join(knowledgeDir, "sujets");
+            if (fs.existsSync(sujetsPath)) {
+                for (const file of fs.readdirSync(sujetsPath)) {
+                    if (file.endsWith(".pdf")) {
+                        sujetsPdfs.push({ filePath: path.join(sujetsPath, file), filename: file });
+                    }
+                }
+            }
         }
 
         // 2. Préparer les parties (parts) du message pour l'API Gemini
         const parts: any[] = [];
 
-        if (relevantPdfs.length > 0) {
+        if (coursePdfs.length > 0) {
             parts.push({ text: "Voici les fiches de cours officielles (Knowledge Base) : " });
-            relevantPdfs.forEach(doc => {
-                const fileData = fs.readFileSync(doc.filePath);
-                const base64 = fileData.toString("base64");
-                parts.push({
-                    inlineData: { data: base64, mimeType: "application/pdf" }
-                });
+            coursePdfs.forEach(doc => {
+                const base64 = fs.readFileSync(doc.filePath).toString("base64");
+                parts.push({ inlineData: { data: base64, mimeType: "application/pdf" } });
             });
             parts.push({ text: "\nTu dois IMPÉRATIVEMENT t'assurer que les tâches demandées dans la mission sont faisables et correspondent à ce qui est enseigné dans ces fiches de cours. Inspire-toi du vocabulaire utilisé.\n" });
+        }
+
+        if (sujetsPdfs.length > 0) {
+            parts.push({ text: "\nVoici des exemples de sujets d'examen BTS NDRC (épreuves E5/E6). Inspire-toi de leur style, de leur niveau d'exigence et de leurs mises en situation pour rendre ta mission plus réaliste et conforme aux attentes de l'examen :\n" });
+            sujetsPdfs.forEach(doc => {
+                const base64 = fs.readFileSync(doc.filePath).toString("base64");
+                parts.push({ inlineData: { data: base64, mimeType: "application/pdf" } });
+            });
         }
 
         parts.push({ text: prompt });
