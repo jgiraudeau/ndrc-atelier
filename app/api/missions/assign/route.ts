@@ -15,15 +15,22 @@ export async function POST(request: NextRequest) {
         const mission = await prisma.mission.findUnique({ where: { id: missionId } });
         if (!mission) return apiError("Mission introuvable", 404);
 
-        let targetIds: string[] = studentIds || [];
+        let targetIds: string[] = [];
 
-        // Si classId fourni, récupérer tous les étudiants de cette classe
         if (classId) {
+            // Par classe : ne prendre que les étudiants de CE prof
             const students = await prisma.student.findMany({
                 where: { classId, teacherId: auth.payload.sub },
                 select: { id: true },
             });
             targetIds = students.map(s => s.id);
+        } else if (studentIds && studentIds.length > 0) {
+            // Par étudiants : vérifier qu'ils appartiennent bien à CE prof
+            const verified = await prisma.student.findMany({
+                where: { id: { in: studentIds }, teacherId: auth.payload.sub },
+                select: { id: true },
+            });
+            targetIds = verified.map(s => s.id);
         }
 
         if (targetIds.length === 0) {

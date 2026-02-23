@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
 
     try {
         const students = await prisma.student.findMany({
+            where: { teacherId: auth.payload.sub },
             include: {
                 class: true,
                 progress: true,
