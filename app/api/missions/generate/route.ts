@@ -76,33 +76,40 @@ L'e-mail doit globalement :
 Génère uniquement le contenu de cet email.
 `;
 
-        // 1. Charger le catalogue RAG
-        let catalog: any[] = [];
-        try {
-            const catalogPath = path.join(process.cwd(), "knowledge-catalog.json");
-            if (fs.existsSync(catalogPath)) {
-                catalog = JSON.parse(fs.readFileSync(catalogPath, "utf-8"));
-            }
-        } catch (e) {
-            console.error("Impossible de lire le catalogue de connaissances : ", e);
+        // 1. Chercher les PDFs locaux pertinents dans le dossier knowledge/
+        const knowledgeDir = path.join(process.cwd(), "knowledge");
+        const relevantPdfs: { filePath: string; filename: string }[] = [];
+
+        if (fs.existsSync(knowledgeDir)) {
+            const scanDir = (dir: string) => {
+                for (const entry of fs.readdirSync(dir)) {
+                    const fullPath = path.join(dir, entry);
+                    if (fs.statSync(fullPath).isDirectory()) {
+                        scanDir(fullPath);
+                    } else if (
+                        entry.endsWith(".pdf") &&
+                        entry.toLowerCase().includes(platform.toLowerCase())
+                    ) {
+                        relevantPdfs.push({ filePath: fullPath, filename: entry });
+                    }
+                }
+            };
+            scanDir(knowledgeDir);
         }
 
-        // 2. Filtrer les documents pertinents pour la plateforme choisie
-        const relevantDocs = catalog.filter(doc =>
-            doc.filename.toLowerCase().includes(platform.toLowerCase())
-        );
-
-        // 3. Préparer les parties (parts) du message pour l'API Gemini
+        // 2. Préparer les parties (parts) du message pour l'API Gemini
         const parts: any[] = [];
 
-        if (relevantDocs.length > 0) {
+        if (relevantPdfs.length > 0) {
             parts.push({ text: "Voici les fiches de cours officielles (Knowledge Base) : " });
-            relevantDocs.forEach(doc => {
+            relevantPdfs.forEach(doc => {
+                const fileData = fs.readFileSync(doc.filePath);
+                const base64 = fileData.toString("base64");
                 parts.push({
-                    fileData: { fileUri: doc.uri, mimeType: doc.mimeType }
+                    inlineData: { data: base64, mimeType: "application/pdf" }
                 });
             });
-            parts.push({ text: "\nTu dois IMPEÉRATIVEMENT t'assurer que les tâches demandées dans la mission sont faisables et correspondent à ce qui est enseigné dans ces fiches de cours. Inspire-toi du vocabulaire utilisé.\n" });
+            parts.push({ text: "\nTu dois IMPÉRATIVEMENT t'assurer que les tâches demandées dans la mission sont faisables et correspondent à ce qui est enseigné dans ces fiches de cours. Inspire-toi du vocabulaire utilisé.\n" });
         }
 
         parts.push({ text: prompt });
