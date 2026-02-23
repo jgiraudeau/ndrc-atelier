@@ -43,12 +43,13 @@ model Class {
 // ÉLÈVE
 // ============================================================
 model Student {
-  id          String   @id @default(cuid())
-  firstName   String
-  lastName    String
-  pinHash     String                    // PIN hashé avec bcrypt
-  wpUrl       String?                   // URL du site WordPress de l'élève
-  prestaUrl   String?                   // URL du site PrestaShop de l'élève
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  identifier   String   @unique          // ex: jean.dupont (auto-généré)
+  passwordHash String                        // Mot de passe hashé avec bcrypt
+  wpUrl        String?                        // URL du site WordPress de l'élève
+  prestaUrl    String?                        // URL du site PrestaShop de l'élève
   teacher     Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   teacherId   String
   class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)

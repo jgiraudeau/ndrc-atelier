@@ -28,7 +28,7 @@ function ProgressBar({ value, color = "bg-purple-500" }: { value: number; color?
     );
 }
 
-function parseCSV(text: string): Array<{ firstName: string; lastName: string; classCode: string; pin: string }> {
+function parseCSV(text: string): Array<{ firstName: string; lastName: string; classCode: string; password: string }> {
     const lines = text.split("\n");
     const firstLine = lines[0] || "";
     const sep = firstLine.includes(";") ? ";" : ",";
@@ -40,9 +40,9 @@ function parseCSV(text: string): Array<{ firstName: string; lastName: string; cl
             const lastName = parts[0].trim();
             const firstName = parts[1].trim();
             const classCode = parts[2].trim().toUpperCase();
-            const pin = parts[3]?.trim() || Math.floor(1000 + Math.random() * 9000).toString();
+            const password = parts[3]?.trim() || Math.random().toString(36).slice(-6);
             if (lastName && firstName && classCode) {
-                result.push({ firstName, lastName, classCode, pin });
+                result.push({ firstName, lastName, classCode, password });
             }
         }
     }
@@ -106,7 +106,7 @@ export default function TeacherDashboard() {
     };
 
     const downloadCsvTemplate = () => {
-        const content = "Nom;Prénom;CodeClasse;PIN\nDupont;Thomas;NDRC1;1234\nMartin;Sophie;NDRC2;5678";
+        const content = "Nom;Prénom;CodeClasse;MotDePasse\nDupont;Thomas;NDRC1;monmdp1\nMartin;Sophie;NDRC2;monmdp2";
         const blob = new Blob(['\uFEFF' + content], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -134,8 +134,12 @@ export default function TeacherDashboard() {
             setImportStatus({ type: "error", message: error || "Erreur lors de l'import." });
             return;
         }
-        setImportStatus({ type: "success", message: `${data.imported} élève(s) importé(s) !${data.errors.length > 0 ? ` (${data.errors.length} erreur(s))` : ""}` });
-        fetchStudents(); // Recharger la liste
+        const identifiersList = data.createdStudents?.map(s => `${s.firstName} ${s.lastName} → ${s.identifier}`).join(", ") || "";
+        setImportStatus({
+            type: "success",
+            message: `${data.stats.created} créé(s), ${data.stats.updated} mis à jour.${identifiersList ? ` Identifiants : ${identifiersList}` : ""}`
+        });
+        fetchStudents();
     };
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -257,9 +261,9 @@ export default function TeacherDashboard() {
                             </h3>
                             <p className="text-slate-400 text-xs mb-4">Format attendu</p>
                             <div className="bg-slate-50 rounded-lg p-3 font-mono text-xs text-slate-600 border border-slate-100 leading-relaxed">
-                                Nom;Prénom;CodeClasse;PIN<br />
-                                Dupont;Pierre;NDRC1;1234<br />
-                                Martin;Alice;NDRC2;5678
+                                Nom;Prénom;CodeClasse;MotDePasse<br />
+                                Dupont;Pierre;NDRC1;monmdp1<br />
+                                Martin;Alice;NDRC2;monmdp2
                             </div>
                         </div>
                         <button onClick={downloadCsvTemplate} className="mt-4 w-full bg-purple-600 text-white px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-purple-700 transition-colors">
@@ -319,6 +323,7 @@ export default function TeacherDashboard() {
                                             <div className="font-bold text-slate-800 truncate">
                                                 {student.firstName} <span className="uppercase">{student.lastName}</span>
                                                 <span className="ml-2 inline-block px-2 py-0.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-md">{student.classCode}</span>
+                                                <span className="ml-1.5 inline-block px-2 py-0.5 bg-purple-50 text-purple-500 text-xs font-mono rounded-md">{student.identifier}</span>
                                             </div>
                                             <div className="mt-1.5"><ProgressBar value={student.progress} color={pColor} /></div>
                                         </div>

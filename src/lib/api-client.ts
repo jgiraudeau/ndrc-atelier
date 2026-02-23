@@ -53,10 +53,17 @@ export async function apiTeacherRegister(name: string, email: string, password: 
     );
 }
 
-export async function apiStudentLogin(classCode: string, pin: string) {
+export async function apiStudentLogin(identifier: string, password: string) {
     return apiFetch<{ token: string; name: string; role: string; classCode: string; studentId: string }>(
         "/api/auth/student/login",
-        { method: "POST", body: JSON.stringify({ classCode, pin }) }
+        { method: "POST", body: JSON.stringify({ identifier, password }) }
+    );
+}
+
+export async function apiChangePassword(currentPassword: string, newPassword: string) {
+    return apiFetch<{ message: string }>(
+        "/api/student/password",
+        { method: "PATCH", body: JSON.stringify({ currentPassword, newPassword }) }
     );
 }
 
@@ -68,6 +75,7 @@ export interface StudentWithProgress {
     id: string;
     firstName: string;
     lastName: string;
+    identifier: string;
     classCode: string;
     className: string;
     wpUrl?: string | null;
@@ -101,9 +109,13 @@ export async function apiUpdateStudent(id: string, data: { wpUrl?: string; prest
 }
 
 export async function apiImportStudents(
-    students: Array<{ firstName: string; lastName: string; classCode: string; pin: string }>
+    students: Array<{ firstName: string; lastName: string; classCode: string; password: string }>
 ) {
-    return apiFetch<{ imported: number; errors: string[] }>(
+    return apiFetch<{
+        message: string;
+        stats: { created: number; updated: number };
+        createdStudents: Array<{ firstName: string; lastName: string; identifier: string }>;
+    }>(
         "/api/students",
         { method: "POST", body: JSON.stringify({ students }) }
     );

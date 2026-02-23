@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  User, CheckCircle2, Trophy, Clock, ChevronRight, Globe, ShoppingBag, MessageSquare
+  User, CheckCircle2, Trophy, Clock, ChevronRight, Globe, ShoppingBag, MessageSquare, KeyRound, LogOut
 } from "lucide-react";
 import Link from "next/link";
-import { apiStudentDashboard, type StudentDashboardData } from "@/src/lib/api-client";
+import { apiStudentDashboard, apiChangePassword, type StudentDashboardData } from "@/src/lib/api-client";
 import { cn } from "@/lib/utils";
 
 export default function StudentDashboard() {
@@ -14,6 +14,12 @@ export default function StudentDashboard() {
   const [data, setData] = useState<StudentDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showPwdForm, setShowPwdForm] = useState(false);
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [pwdMsg, setPwdMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [pwdLoading, setPwdLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("ndrc_token");
@@ -40,6 +46,29 @@ export default function StudentDashboard() {
     localStorage.removeItem("ndrc_token");
     localStorage.removeItem("ndrc_user");
     router.push("/");
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdMsg(null);
+    if (newPwd !== confirmPwd) {
+      setPwdMsg({ type: "error", text: "Les mots de passe ne correspondent pas" });
+      return;
+    }
+    if (newPwd.length < 4) {
+      setPwdMsg({ type: "error", text: "4 caractères minimum" });
+      return;
+    }
+    setPwdLoading(true);
+    const { error } = await apiChangePassword(currentPwd, newPwd);
+    setPwdLoading(false);
+    if (error) {
+      setPwdMsg({ type: "error", text: error });
+    } else {
+      setPwdMsg({ type: "success", text: "Mot de passe modifié !" });
+      setCurrentPwd(""); setNewPwd(""); setConfirmPwd("");
+      setTimeout(() => setShowPwdForm(false), 2000);
+    }
   };
 
   if (loading) return (
@@ -77,13 +106,18 @@ export default function StudentDashboard() {
             </h1>
             <p className="text-slate-400 mt-1 font-medium text-sm">Prêt à valider de nouvelles compétences ?</p>
           </div>
-          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">
-            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
-              {data.firstName[0]}{data.lastName[0]}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                {data.firstName[0]}{data.lastName[0]}
+              </div>
+              <div className="text-xs font-bold text-slate-600 pr-2">
+                {data.classCode}
+              </div>
             </div>
-            <div className="text-xs font-bold text-slate-600 pr-2">
-              {data.classCode}
-            </div>
+            <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg" title="Déconnexion">
+              <LogOut size={18} />
+            </button>
           </div>
         </header>
 
@@ -223,7 +257,7 @@ export default function StudentDashboard() {
               </div>
             </section>
 
-            {/* Quick Actions */}
+            {/* Objectifs */}
             <section className="bg-indigo-50 rounded-3xl p-6 border border-indigo-100">
               <h3 className="font-bold text-indigo-900 text-sm uppercase mb-4 flex items-center gap-2">
                 <Trophy size={16} /> Objectifs
@@ -234,6 +268,57 @@ export default function StudentDashboard() {
               <Link href="/student/wordpress" className="block w-full bg-indigo-600 text-white font-bold text-center py-3 rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-[1.02] transition-all text-sm">
                 Continuer ma progression
               </Link>
+            </section>
+
+            {/* Changer mot de passe */}
+            <section className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
+              <button
+                onClick={() => { setShowPwdForm(!showPwdForm); setPwdMsg(null); }}
+                className="w-full flex items-center justify-between text-sm font-bold text-slate-700"
+              >
+                <span className="flex items-center gap-2"><KeyRound size={16} className="text-slate-400" /> Changer mon mot de passe</span>
+                <ChevronRight size={16} className={`text-slate-400 transition-transform ${showPwdForm ? "rotate-90" : ""}`} />
+              </button>
+              {showPwdForm && (
+                <form onSubmit={handleChangePassword} className="mt-4 space-y-3">
+                  <input
+                    type="password"
+                    placeholder="Mot de passe actuel"
+                    value={currentPwd}
+                    onChange={e => setCurrentPwd(e.target.value)}
+                    className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400"
+                    autoComplete="current-password"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Nouveau mot de passe"
+                    value={newPwd}
+                    onChange={e => setNewPwd(e.target.value)}
+                    className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400"
+                    autoComplete="new-password"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Confirmer le nouveau mot de passe"
+                    value={confirmPwd}
+                    onChange={e => setConfirmPwd(e.target.value)}
+                    className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400"
+                    autoComplete="new-password"
+                  />
+                  {pwdMsg && (
+                    <div className={`p-2.5 rounded-lg text-xs font-bold text-center ${pwdMsg.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                      {pwdMsg.text}
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={pwdLoading || !currentPwd || !newPwd || !confirmPwd}
+                    className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-indigo-700 disabled:opacity-40 transition-all"
+                  >
+                    {pwdLoading ? "..." : "Modifier"}
+                  </button>
+                </form>
+              )}
             </section>
           </div>
         </div>

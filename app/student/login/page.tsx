@@ -1,52 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, KeyRound, Building2 } from "lucide-react";
+import { ArrowLeft, User, KeyRound } from "lucide-react";
 import Link from "next/link";
 import { apiStudentLogin } from "@/src/lib/api-client";
-import { cn } from "@/lib/utils";
 
 export default function StudentLoginPage() {
     const router = useRouter();
-    const [classCode, setClassCode] = useState("");
-    const [pin, setPin] = useState("");
-    const [step, setStep] = useState(1);
+    const [identifier, setIdentifier] = useState("");
+    const [password, setPassword] = useState("");
     const [error, setError] = useState("");
-    const [validClassName, setValidClassName] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
-    // Étape 1 : vérifier si le code classe existe (appel API)
-    const handleClassCodeSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (classCode.length < 2) return setError("Code trop court.");
+        if (!identifier.trim() || !password) return;
         setIsLoading(true);
         setError("");
 
-        // On passe directement à l'étape PIN — la vérification de classe
-        // se fait lors du login complet pour éviter l'énumération des classes
-        setValidClassName(`Classe ${classCode.toUpperCase()}`);
-        setIsLoading(false);
-        setStep(2);
-    };
-
-    const handlePinSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (pin.length < 4) return setError("PIN à 4 chiffres requis.");
-        setIsLoading(true);
-        setError("");
-
-        const { data, error: apiErr } = await apiStudentLogin(classCode.toUpperCase(), pin);
+        const { data, error: apiErr } = await apiStudentLogin(identifier.trim(), password);
         setIsLoading(false);
 
         if (apiErr || !data) {
             setError(apiErr || "Identifiants incorrects.");
-            setPin("");
             return;
         }
 
-        // Stocker le token JWT
         localStorage.setItem("ndrc_token", data.token);
         localStorage.setItem("ndrc_user", JSON.stringify({
             name: data.name,
@@ -68,104 +48,60 @@ export default function StudentLoginPage() {
                 <div className="bg-white rounded-3xl shadow-xl border border-white/60 p-8">
                     <div className="text-center mb-8">
                         <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mx-auto mb-4">
-                            {step === 1 ? <Building2 size={30} /> : <KeyRound size={30} />}
+                            <User size={30} />
                         </div>
-                        <h1 className="text-xl font-black text-slate-800">
-                            {step === 1 ? "Code Classe" : validClassName}
-                        </h1>
+                        <h1 className="text-xl font-black text-slate-800">Connexion Élève</h1>
                         <p className="text-xs text-slate-400 mt-1">
-                            {step === 1 ? "Entrez le code de votre classe" : "Entrez votre PIN personnel"}
+                            Utilise ton identifiant et ton mot de passe
                         </p>
                     </div>
 
-                    {/* Indicateur étapes */}
-                    <div className="flex gap-2 mb-8 justify-center">
-                        {[1, 2].map((s) => (
-                            <div key={s} className={cn("h-1.5 w-10 rounded-full transition-all duration-300",
-                                s <= step ? "bg-blue-500" : "bg-slate-200"
-                            )} />
-                        ))}
-                    </div>
-
-                    <AnimatePresence mode="wait">
-                        {step === 1 ? (
-                            <motion.form
-                                key="step1"
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 20 }}
-                                onSubmit={handleClassCodeSubmit}
-                                className="space-y-4"
-                            >
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Identifiant</label>
+                            <div className="relative">
+                                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="text"
-                                    value={classCode}
-                                    onChange={(e) => { setClassCode(e.target.value.toUpperCase()); setError(""); }}
-                                    placeholder="ex: NDRC1"
-                                    maxLength={10}
-                                    className="w-full px-4 py-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none font-bold text-2xl text-center tracking-widest uppercase transition-colors"
+                                    value={identifier}
+                                    onChange={(e) => { setIdentifier(e.target.value); setError(""); }}
+                                    placeholder="prenom.nom"
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none font-medium text-slate-700 transition-colors"
                                     autoFocus
+                                    autoComplete="username"
                                 />
-                                {error && (
-                                    <div className="p-3 bg-red-50 text-red-600 text-sm font-bold rounded-lg text-center">
-                                        ⚠️ {error}
-                                    </div>
-                                )}
-                                <button
-                                    type="submit"
-                                    disabled={isLoading || classCode.length < 2}
-                                    className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-200 disabled:opacity-40"
-                                >
-                                    {isLoading ? "..." : "Continuer →"}
-                                </button>
-                            </motion.form>
-                        ) : (
-                            <motion.form
-                                key="step2"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                onSubmit={handlePinSubmit}
-                                className="space-y-4"
-                            >
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Mot de passe</label>
+                            <div className="relative">
+                                <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="password"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    value={pin}
-                                    onChange={(e) => { setPin(e.target.value); setError(""); }}
-                                    placeholder="••••"
-                                    maxLength={6}
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none font-bold text-3xl text-center tracking-[0.5em] transition-colors"
-                                    autoFocus
+                                    value={password}
+                                    onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                                    placeholder="••••••"
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none font-medium text-slate-700 transition-colors"
+                                    autoComplete="current-password"
                                 />
-                                {error && (
-                                    <div className="p-3 bg-red-50 text-red-600 text-sm font-bold rounded-lg text-center">
-                                        ⚠️ {error}
-                                    </div>
-                                )}
-                                <div className="flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => { setStep(1); setError(""); setPin(""); }}
-                                        className="flex-1 bg-slate-100 text-slate-500 font-bold py-4 rounded-xl hover:bg-slate-200 active:scale-95 transition-all"
-                                    >
-                                        Retour
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isLoading || pin.length < 4}
-                                        className="flex-[2] bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-200 disabled:opacity-40"
-                                    >
-                                        {isLoading ? "Connexion..." : "Valider"}
-                                    </button>
-                                </div>
-                                <div className="text-center text-xs text-slate-400 mt-2">
-                                    Utilise le PIN que ton formateur t&apos;a attribué
-                                </div>
-                            </motion.form>
+                            </div>
+                        </div>
+
+                        {error && (
+                            <div className="p-3 bg-red-50 text-red-600 text-sm font-bold rounded-lg text-center">
+                                {error}
+                            </div>
                         )}
-                    </AnimatePresence>
+
+                        <button
+                            type="submit"
+                            disabled={isLoading || !identifier.trim() || !password}
+                            className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-200 disabled:opacity-40"
+                        >
+                            {isLoading ? "Connexion..." : "Se connecter"}
+                        </button>
+                    </form>
                 </div>
             </div>
         </main>

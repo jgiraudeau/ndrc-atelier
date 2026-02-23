@@ -7,53 +7,39 @@ import { apiError, apiSuccess } from "@/src/lib/api-helpers";
 // POST /api/auth/student/login
 export async function POST(request: NextRequest) {
     try {
-        const { classCode, pin } = await request.json();
+        const { identifier, password } = await request.json();
 
-        if (!classCode || !pin) {
-            return apiError("Code classe et PIN requis");
+        if (!identifier || !password) {
+            return apiError("Identifiant et mot de passe requis");
         }
 
-        // Trouver la classe par son code
-        const cls = await prisma.class.findFirst({
-            where: { code: classCode.toUpperCase().trim() },
+        const student = await prisma.student.findUnique({
+            where: { identifier: identifier.toLowerCase().trim() },
+            include: { class: true },
         });
 
-        if (!cls) {
-            return apiError("Code classe non reconnu", 401);
+        if (!student) {
+            return apiError("Identifiant ou mot de passe incorrect", 401);
         }
 
-        // Récupérer les élèves de cette classe
-        const students = await prisma.student.findMany({
-            where: { classId: cls.id },
-        });
-
-        // Vérifier le PIN (hashé avec bcrypt) pour chaque élève
-        let matchedStudent = null;
-        for (const student of students) {
-            const valid = await bcrypt.compare(pin, student.pinHash);
-            if (valid) {
-                matchedStudent = student;
-                break;
-            }
-        }
-
-        if (!matchedStudent) {
-            return apiError("PIN incorrect", 401);
+        const valid = await bcrypt.compare(password, student.passwordHash);
+        if (!valid) {
+            return apiError("Identifiant ou mot de passe incorrect", 401);
         }
 
         const token = await signToken({
-            sub: matchedStudent.id,
+            sub: student.id,
             role: "STUDENT",
-            name: `${matchedStudent.firstName} ${matchedStudent.lastName}`,
-            classCode: cls.code,
+            name: `${student.firstName} ${student.lastName}`,
+            classCode: student.class.code,
         });
 
         return apiSuccess({
             token,
-            name: `${matchedStudent.firstName} ${matchedStudent.lastName}`,
+            name: `${student.firstName} ${student.lastName}`,
             role: "STUDENT",
-            classCode: cls.code,
-            studentId: matchedStudent.id,
+            classCode: student.class.code,
+            studentId: student.id,
         });
     } catch (err) {
         console.error("[student/login]", err);

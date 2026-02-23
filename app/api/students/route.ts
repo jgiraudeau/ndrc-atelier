@@ -25,10 +25,8 @@ export async function GET(request: NextRequest) {
         const safeStudents = students.map((s: any) => {
             const acquiredCount = s.progress.filter((p: any) => p.acquired).length;
 
-            // Calculer la dernière activité
             let lastActive = null;
             if (s.progress.length > 0) {
-                // Clone array before sort to avoid mutating readonly if applicable
                 const sortedProgress = [...s.progress].sort((a: any, b: any) =>
                     new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
                 );
@@ -39,6 +37,7 @@ export async function GET(request: NextRequest) {
                 id: s.id,
                 firstName: s.firstName,
                 lastName: s.lastName,
+                identifier: s.identifier,
                 classCode: s.class.code,
                 className: s.class.name,
                 wpUrl: s.wpUrl,
@@ -69,6 +68,28 @@ export async function GET(request: NextRequest) {
     }
 }
 
+function normalizeStr(s: string): string {
+    return s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "")
+        .trim();
+}
+
+async function generateUniqueIdentifier(firstName: string, lastName: string): Promise<string> {
+    const base = `${normalizeStr(firstName)}.${normalizeStr(lastName)}`;
+    let identifier = base;
+    let counter = 2;
+
+    while (true) {
+        const existing = await prisma.student.findUnique({ where: { identifier } });
+        if (!existing) return identifier;
+        identifier = `${base}${counter}`;
+        counter++;
+    }
+}
+
 // POST /api/students (Import CSV)
 export async function POST(request: NextRequest) {
     const auth = await requireAuth(request, ["TEACHER"]);
@@ -76,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { students } = body; // Array of { firstName, lastName, classCode, pin }
+        const { students } = body; // Array of { firstName, lastName, classCode, password }
 
         if (!Array.isArray(students) || students.length === 0) {
             return apiError("Format invalide. Un tableau 'students' est attendu.", 400);
@@ -84,11 +105,12 @@ export async function POST(request: NextRequest) {
 
         let createdCount = 0;
         let updatedCount = 0;
+        const createdStudents: Array<{ firstName: string; lastName: string; identifier: string }> = [];
 
         for (const s of students) {
-            if (!s.firstName || !s.lastName || !s.classCode || !s.pin) continue;
+            if (!s.firstName || !s.lastName || !s.classCode || !s.password) continue;
 
-            // 1. Upsert Class (UniqueConstraint: code + teacherId)
+            // 1. Upsert Class
             const classRecord = await prisma.class.upsert({
                 where: {
                     code_teacherId: {
@@ -104,11 +126,10 @@ export async function POST(request: NextRequest) {
                 },
             });
 
-            // 2. Hash PIN
-            const hashedPin = await bcrypt.hash(s.pin, 10);
+            // 2. Hash password
+            const passwordHash = await bcrypt.hash(s.password, 10);
 
-            // 3. Upsert Student (Par nom/prénom dans la classe)
-            // On cherche manuellement car pas d'upsert propre possible
+            // 3. Chercher si l'élève existe déjà
             const existingStudent = await prisma.student.findFirst({
                 where: {
                     firstName: { equals: s.firstName, mode: "insensitive" },
@@ -118,30 +139,32 @@ export async function POST(request: NextRequest) {
             });
 
             if (existingStudent) {
-                // Update PIN only
                 await prisma.student.update({
                     where: { id: existingStudent.id },
-                    data: { pinHash: hashedPin },
+                    data: { passwordHash },
                 });
                 updatedCount++;
             } else {
-                // Create
+                const identifier = await generateUniqueIdentifier(s.firstName, s.lastName);
                 await prisma.student.create({
                     data: {
                         firstName: s.firstName,
                         lastName: s.lastName,
-                        pinHash: hashedPin,
-                        classId: classRecord.id, // Relation classe
-                        teacherId: auth.payload.sub, // Relation prof
+                        identifier,
+                        passwordHash,
+                        classId: classRecord.id,
+                        teacherId: auth.payload.sub,
                     },
                 });
                 createdCount++;
+                createdStudents.push({ firstName: s.firstName, lastName: s.lastName, identifier });
             }
         }
 
         return apiSuccess({
             message: "Import terminé avec succès",
-            stats: { created: createdCount, updated: updatedCount }
+            stats: { created: createdCount, updated: updatedCount },
+            createdStudents,
         });
 
     } catch (error) {
