@@ -17,9 +17,10 @@ model Teacher {
   status       String    @default("pending")  // "pending", "active", "rejected"
   createdAt    DateTime  @default(now())
 
-  students  Student[]
-  classes   Class[]
-  comments  Comment[]
+  students           Student[]
+  classes            Class[]
+  comments           Comment[]
+  missionAssignments MissionAssignment[]
 }
 
 // ============================================================
@@ -56,6 +57,7 @@ model Student {
 
   progress  Progress[]
   comments  Comment[]
+  missions  MissionAssignment[]
 
   @@unique([classId, firstName, lastName]) // Pas de doublon dans la même classe
 }
@@ -87,4 +89,39 @@ model Comment {
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId String
   createdAt DateTime @default(now())
+}
+
+// ============================================================
+// MISSION (générée par IA ou créée manuellement)
+// ============================================================
+model Mission {
+  id            String   @id @default(cuid())
+  title         String
+  content       String                        // Markdown de la mission
+  platform      String                        // "WORDPRESS" | "PRESTASHOP"
+  level         Int      @default(2)          // 1-4
+  competencyIds String[]                      // IDs des compétences ciblées
+  createdBy     String                        // ID Teacher ou Student
+  createdByRole String                        // "TEACHER" | "STUDENT"
+  createdAt     DateTime @default(now())
+
+  assignments MissionAssignment[]
+}
+
+// ============================================================
+// AFFECTATION DE MISSION
+// ============================================================
+model MissionAssignment {
+  id          String    @id @default(cuid())
+  mission     Mission   @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  missionId   String
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   String
+  teacher     Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId   String
+  status      String    @default("pending")   // "pending" | "in_progress" | "completed"
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  @@unique([missionId, studentId])
 }

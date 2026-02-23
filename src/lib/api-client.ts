@@ -213,3 +213,74 @@ export async function apiManageTeacher(teacherId: string, action: "approve" | "r
         { method: "PATCH", body: JSON.stringify({ teacherId, action }) }
     );
 }
+
+// =============================================================
+// MISSIONS
+// =============================================================
+
+export interface MissionData {
+    id: string;
+    title: string;
+    content: string;
+    platform: string;
+    level: number;
+    competencyIds: string[];
+    createdBy: string;
+    createdByRole: string;
+    createdAt: string;
+    _count?: { assignments: number };
+}
+
+export interface MissionAssignmentData {
+    id: string;
+    missionId: string;
+    title: string;
+    content: string;
+    platform: string;
+    level: number;
+    competencyIds: string[];
+    status: string;
+    assignedAt: string;
+    completedAt: string | null;
+    teacherName: string;
+}
+
+// Sauvegarder une mission (prof ou élève)
+export async function apiSaveMission(data: {
+    title: string; content: string; platform: string;
+    level: number; competencyIds: string[];
+}) {
+    return apiFetch<MissionData>("/api/missions", {
+        method: "POST", body: JSON.stringify(data),
+    });
+}
+
+// Lister les missions du formateur
+export async function apiGetMissions(platform?: string) {
+    const query = platform ? `?platform=${platform}` : "";
+    return apiFetch<MissionData[]>(`/api/missions${query}`);
+}
+
+// Supprimer une mission
+export async function apiDeleteMission(id: string) {
+    return apiFetch<{ deleted: boolean }>(`/api/missions/${id}`, { method: "DELETE" });
+}
+
+// Assigner une mission
+export async function apiAssignMission(missionId: string, target: { studentIds?: string[]; classId?: string }) {
+    return apiFetch<{ assigned: number }>("/api/missions/assign", {
+        method: "POST", body: JSON.stringify({ missionId, ...target }),
+    });
+}
+
+// Missions assignées à l'étudiant
+export async function apiGetMyMissions() {
+    return apiFetch<MissionAssignmentData[]>("/api/student/missions");
+}
+
+// Mettre à jour le statut d'une mission assignée
+export async function apiUpdateMissionStatus(assignmentId: string, status: string) {
+    return apiFetch<MissionAssignmentData>(`/api/student/missions/${assignmentId}`, {
+        method: "PATCH", body: JSON.stringify({ status }),
+    });
+}

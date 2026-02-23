@@ -7,7 +7,7 @@ import path from "path";
 
 export async function POST(request: NextRequest) {
     try {
-        const auth = await requireAuth(request, ["STUDENT"]);
+        const auth = await requireAuth(request, ["STUDENT", "TEACHER"]);
         if ("status" in auth) return auth;
 
         const { competencyIds, context, level = 2 } = await request.json();

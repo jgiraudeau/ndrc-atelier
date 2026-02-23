@@ -6,8 +6,9 @@ import {
     Users, Download, LogOut, FileSpreadsheet, Search,
     Upload, CheckCircle2, XCircle, MessageSquarePlus,
     ChevronDown, ChevronUp, Trash2, Send, BookOpen, RefreshCw,
-    Globe, Save
+    Globe, Save, Target
 } from "lucide-react";
+import Link from "next/link";
 import {
     apiGetStudents, apiImportStudents, apiAddComment, apiDeleteComment, apiUpdateStudent,
     type StudentWithProgress
@@ -206,6 +207,9 @@ export default function TeacherDashboard() {
                         Console — <span className="text-purple-600">{teacherName}</span>
                     </h1>
                     <div className="flex items-center gap-2">
+                        <Link href="/teacher/missions" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors" title="Missions">
+                            <Target size={16} /> Missions
+                        </Link>
                         <button onClick={fetchStudents} className="p-2 text-slate-400 hover:text-purple-600 transition-colors rounded-lg" title="Actualiser">
                             <RefreshCw size={18} />
                         </button>
