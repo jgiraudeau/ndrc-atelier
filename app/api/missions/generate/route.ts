@@ -101,12 +101,24 @@ Génère uniquement le contenu de cet email.
                 }
             }
 
-            // Dossier sujets d'examen (inclus pour toutes les plateformes)
-            const sujetsPath = path.join(knowledgeDir, "sujets");
-            if (fs.existsSync(sujetsPath)) {
-                for (const file of fs.readdirSync(sujetsPath)) {
-                    if (file.endsWith(".pdf")) {
-                        sujetsPdfs.push({ filePath: path.join(sujetsPath, file), filename: file });
+            // Dossier sujets d'examen : d'abord le sous-dossier de la plateforme, puis la racine
+            // Structure : knowledge/sujets/wordpress/, knowledge/sujets/prestashop/
+            const sujetsBase = path.join(knowledgeDir, "sujets");
+            if (fs.existsSync(sujetsBase)) {
+                // Sujets spécifiques à la plateforme
+                const sujetsPlatform = path.join(sujetsBase, platform.toLowerCase());
+                if (fs.existsSync(sujetsPlatform)) {
+                    for (const file of fs.readdirSync(sujetsPlatform)) {
+                        if (file.endsWith(".pdf")) {
+                            sujetsPdfs.push({ filePath: path.join(sujetsPlatform, file), filename: file });
+                        }
+                    }
+                }
+                // Sujets généraux (à la racine de sujets/)
+                for (const file of fs.readdirSync(sujetsBase)) {
+                    const fullPath = path.join(sujetsBase, file);
+                    if (file.endsWith(".pdf") && !fs.statSync(fullPath).isDirectory()) {
+                        sujetsPdfs.push({ filePath: fullPath, filename: file });
                     }
                 }
             }
