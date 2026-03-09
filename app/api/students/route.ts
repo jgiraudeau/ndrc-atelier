@@ -51,6 +51,9 @@ export async function GET(request: NextRequest) {
                     status: p.status,
                     proof: p.proof,
                     updatedAt: p.updatedAt.toISOString(),
+                    teacherStatus: p.teacherStatus,
+                    teacherFeedback: p.teacherFeedback,
+                    teacherGradedAt: p.teacherGradedAt?.toISOString() ?? null,
                 })),
                 comments: s.comments.map((c: any) => ({
                     id: c.id,

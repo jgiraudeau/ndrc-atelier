@@ -76,6 +76,11 @@ model Progress {
   proof        String?                   // URL ou commentaire de l'élève
   updatedAt    DateTime @updatedAt
 
+  // Évaluation formateur
+  teacherStatus    Int?                 // 0-4, null = pas encore évalué par le prof
+  teacherFeedback  String?              // Annotation par compétence
+  teacherGradedAt  DateTime?            // Date de dernière évaluation prof
+
   @@unique([studentId, competencyId])   // 1 enregistrement par compétence par élève
 }
 

@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
                     label: comp?.label || p.competencyId,
                     platform: comp?.platform || "UNKNOWN",
                     date: p.updatedAt.toISOString(),
+                    teacherStatus: p.teacherStatus as number | null,
+                    teacherFeedback: p.teacherFeedback as string | null,
                 };
             });
 

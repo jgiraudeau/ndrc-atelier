@@ -184,6 +184,26 @@ export default function StudentDashboard() {
                           <p className="text-xs text-slate-400 mt-0.5">
                             {new Date(activity.date).toLocaleDateString("fr-FR", { day: 'numeric', month: 'long' })} • {activity.platform}
                           </p>
+                          {activity.teacherStatus !== null && activity.teacherStatus !== undefined && (
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <MessageSquare size={11} className="text-indigo-500" />
+                              <span className={cn(
+                                "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                                activity.teacherStatus === 1 ? "bg-slate-200 text-slate-600" :
+                                activity.teacherStatus === 2 ? "bg-blue-100 text-blue-700" :
+                                activity.teacherStatus === 3 ? "bg-green-100 text-green-700" :
+                                activity.teacherStatus === 4 ? "bg-purple-100 text-purple-700" :
+                                "bg-red-100 text-red-700"
+                              )}>
+                                Prof : {activity.teacherStatus === 0 ? "Non validé" : activity.teacherStatus === 1 ? "Novice" : activity.teacherStatus === 2 ? "Apprenti" : activity.teacherStatus === 3 ? "Compétent" : "Expert"}
+                              </span>
+                              {activity.teacherFeedback && (
+                                <span className="text-[10px] text-indigo-400 truncate max-w-[140px]" title={activity.teacherFeedback}>
+                                  — {activity.teacherFeedback}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <Link href={`/student/competency/${activity.id}`} className="p-2 text-slate-300 hover:text-indigo-600 transition-colors">
                           <ChevronRight size={20} />

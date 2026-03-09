@@ -88,6 +88,9 @@ export interface StudentWithProgress {
         status: number;
         proof: string | null;
         updatedAt: string;
+        teacherStatus: number | null;
+        teacherFeedback: string | null;
+        teacherGradedAt: string | null;
     }>;
     comments: Array<{
         id: string;
@@ -121,6 +124,31 @@ export async function apiImportStudents(
     );
 }
 
+export async function apiGetStudent(studentId: string) {
+    return apiFetch<StudentWithProgress>(`/api/students/${studentId}`);
+}
+
+// =============================================================
+// NOTATION FORMATEUR
+// =============================================================
+
+export async function apiGradeCompetency(
+    studentId: string,
+    competencyId: string,
+    teacherStatus: number,
+    teacherFeedback?: string
+) {
+    return apiFetch<{
+        competencyId: string;
+        teacherStatus: number;
+        teacherFeedback: string | null;
+        teacherGradedAt: string | null;
+    }>("/api/progress/grade", {
+        method: "PATCH",
+        body: JSON.stringify({ studentId, competencyId, teacherStatus, teacherFeedback }),
+    });
+}
+
 // =============================================================
 // PROGRESSION (élève)
 // =============================================================
@@ -131,6 +159,9 @@ export interface ProgressRecord {
     status: number;
     proof: string | null;
     updatedAt: string;
+    teacherStatus: number | null;
+    teacherFeedback: string | null;
+    teacherGradedAt: string | null;
 }
 
 export async function apiGetProgress() {
@@ -155,6 +186,8 @@ export interface StudentDashboardData {
         label: string;
         platform: string;
         date: string;
+        teacherStatus: number | null;
+        teacherFeedback: string | null;
     }>;
     comments: Array<{
         id: string;

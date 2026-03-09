@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle, Save, Globe, UploadCloud, Loader2, Image as ImageIcon, BrainCircuit, X, Star } from "lucide-react";
+import { ArrowLeft, CheckCircle, Save, Globe, UploadCloud, Loader2, Image as ImageIcon, BrainCircuit, X, Star, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiGetProgress, apiSaveProgress, type ProgressRecord } from "@/src/lib/api-client";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
@@ -24,6 +24,9 @@ export default function CompetencyProofPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [teacherStatus, setTeacherStatus] = useState<number | null>(null);
+    const [teacherFeedback, setTeacherFeedback] = useState<string | null>(null);
+    const [teacherGradedAt, setTeacherGradedAt] = useState<string | null>(null);
 
     // Quiz states
     const quizQuestions = typeof competencyId === "string" ? QUIZZES[competencyId] : null;
@@ -45,6 +48,9 @@ export default function CompetencyProofPage() {
                     setIsAcquired(record.acquired);
                     setStatus(record.status || 0);
                     setProofInput(record.proof || "");
+                    setTeacherStatus(record.teacherStatus);
+                    setTeacherFeedback(record.teacherFeedback);
+                    setTeacherGradedAt(record.teacherGradedAt);
                 }
             }
             setIsLoading(false);
@@ -197,6 +203,45 @@ export default function CompetencyProofPage() {
                             Apporte la preuve de ta réalisation pour valider cette compétence {competency.platform === "WORDPRESS" ? "WordPress" : "PrestaShop"}.
                         </p>
                     </div>
+
+                    {/* Évaluation du formateur */}
+                    {teacherStatus !== null && teacherStatus !== undefined && (
+                        <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-5 space-y-3">
+                            <div className="flex items-center gap-2">
+                                <MessageSquare size={18} className="text-indigo-600" />
+                                <h3 className="font-black text-indigo-900 text-sm uppercase tracking-wide">Évaluation du formateur</h3>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm text-indigo-700 font-medium">Niveau attribué :</span>
+                                <span className={cn(
+                                    "px-3 py-1 rounded-full text-sm font-black",
+                                    teacherStatus === 1 ? "bg-slate-200 text-slate-700" :
+                                    teacherStatus === 2 ? "bg-blue-200 text-blue-800" :
+                                    teacherStatus === 3 ? "bg-green-200 text-green-800" :
+                                    teacherStatus === 4 ? "bg-purple-200 text-purple-800" :
+                                    "bg-red-200 text-red-800"
+                                )}>
+                                    {teacherStatus === 0 ? "Non validé" :
+                                     teacherStatus === 1 ? "Novice" :
+                                     teacherStatus === 2 ? "Apprenti" :
+                                     teacherStatus === 3 ? "Compétent" :
+                                     teacherStatus === 4 ? "Expert" : "—"}
+                                </span>
+                            </div>
+                            {teacherFeedback && (
+                                <div className="bg-white/70 rounded-xl p-3 border border-indigo-100">
+                                    <p className="text-sm text-indigo-800 italic leading-relaxed">
+                                        &laquo; {teacherFeedback} &raquo;
+                                    </p>
+                                </div>
+                            )}
+                            {teacherGradedAt && (
+                                <p className="text-xs text-indigo-400">
+                                    Évalué le {new Date(teacherGradedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Auto-évaluation */}
                     <section className="space-y-4">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Check, Lock, ChevronDown, ChevronUp, Trophy } from "lucide-react";
+import { ArrowLeft, Check, Lock, ChevronDown, ChevronUp, Trophy, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
@@ -44,7 +44,7 @@ export default function PlatformPage() {
     const router = useRouter();
     const { user } = useAuthStore();
     const [hydrated, setHydrated] = useState(false);
-    const [serverProgress, setServerProgress] = useState<Record<string, { acquired: boolean; status: number }>>({});
+    const [serverProgress, setServerProgress] = useState<Record<string, { acquired: boolean; status: number; teacherStatus: number | null; teacherFeedback: string | null }>>({});
 
     // Gestion sécurisée du paramètre 'platform'
     const platformId = Array.isArray(params?.platform) ? params.platform[0] : params?.platform;
@@ -64,9 +64,9 @@ export default function PlatformPage() {
 
         apiGetProgress().then(({ data }) => {
             if (data) {
-                const pMap: Record<string, { acquired: boolean; status: number }> = {};
+                const pMap: Record<string, { acquired: boolean; status: number; teacherStatus: number | null; teacherFeedback: string | null }> = {};
                 data.forEach(p => {
-                    pMap[p.competencyId] = { acquired: p.acquired, status: p.status || 0 };
+                    pMap[p.competencyId] = { acquired: p.acquired, status: p.status || 0, teacherStatus: p.teacherStatus, teacherFeedback: p.teacherFeedback };
                 });
                 setServerProgress(pMap);
             }
@@ -197,6 +197,8 @@ export default function PlatformPage() {
                                 {levelCompetencies.map((comp, i) => {
                                     const progressData = serverProgress[comp.id];
                                     const status = progressData?.status || 0;
+                                    const tStatus = progressData?.teacherStatus;
+                                    const tFeedback = progressData?.teacherFeedback;
 
                                     let cardBg = "bg-white border-slate-200 text-slate-700 hover:border-slate-300";
                                     let circleBg = "bg-slate-50 border-slate-100 text-slate-300";
@@ -252,6 +254,26 @@ export default function PlatformPage() {
                                                     <div className="font-bold leading-tight text-sm group-hover:underline decoration-2 underline-offset-2">
                                                         {comp.label}
                                                     </div>
+                                                    {tStatus !== null && tStatus !== undefined && (
+                                                        <div className="flex items-center gap-1.5 mt-1.5">
+                                                            <MessageSquare size={12} className="text-indigo-500" />
+                                                            <span className={cn(
+                                                                "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                                                                tStatus === 1 ? "bg-slate-200 text-slate-600" :
+                                                                tStatus === 2 ? "bg-blue-100 text-blue-700" :
+                                                                tStatus === 3 ? "bg-green-100 text-green-700" :
+                                                                tStatus === 4 ? "bg-purple-100 text-purple-700" :
+                                                                "bg-red-100 text-red-700"
+                                                            )}>
+                                                                Prof : {tStatus === 0 ? "Non validé" : tStatus === 1 ? "Novice" : tStatus === 2 ? "Apprenti" : tStatus === 3 ? "Compétent" : "Expert"}
+                                                            </span>
+                                                            {tFeedback && (
+                                                                <span className="text-[10px] text-indigo-400 truncate max-w-[120px]" title={tFeedback}>
+                                                                    — {tFeedback}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className={cn("mt-1", chevronColor)}>

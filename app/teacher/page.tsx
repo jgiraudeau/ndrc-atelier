@@ -315,11 +315,11 @@ export default function TeacherDashboard() {
 
                             return (
                                 <div key={student.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                    <div className="flex items-center gap-4 p-4 cursor-pointer hover:bg-slate-50/50 transition-colors" onClick={() => setExpandedStudentId(isExpanded ? null : student.id)}>
-                                        <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 font-black flex items-center justify-center text-sm flex-shrink-0">
+                                    <div className="flex items-center gap-4 p-4">
+                                        <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 font-black flex items-center justify-center text-sm flex-shrink-0 cursor-pointer" onClick={() => setExpandedStudentId(isExpanded ? null : student.id)}>
                                             {student.firstName[0]}{student.lastName[0]}
                                         </div>
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedStudentId(isExpanded ? null : student.id)}>
                                             <div className="font-bold text-slate-800 truncate">
                                                 {student.firstName} <span className="uppercase">{student.lastName}</span>
                                                 <span className="ml-2 inline-block px-2 py-0.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-md">{student.classCode}</span>
@@ -328,11 +328,11 @@ export default function TeacherDashboard() {
                                             <div className="mt-1.5"><ProgressBar value={student.progress} color={pColor} /></div>
                                         </div>
                                         <div className="flex-shrink-0 text-right hidden sm:block">
-                                            <div className="text-xs text-slate-400">{student.acquiredCount}/{TOTAL_COMPETENCIES} compétences</div>
+                                            <a href={`/teacher/student/${student.id}`} className="text-xs text-purple-600 hover:text-purple-800 font-bold hover:underline">{student.acquiredCount}/{TOTAL_COMPETENCIES} compétences</a>
                                             {student.lastActive && <div className="text-xs text-slate-300 mt-0.5">{new Date(student.lastActive).toLocaleDateString("fr-FR")}</div>}
                                             {student.comments.length > 0 && <div className="text-xs text-purple-500 font-bold mt-0.5">💬 {student.comments.length}</div>}
                                         </div>
-                                        <div className="text-slate-400 flex-shrink-0">{isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</div>
+                                        <div className="text-slate-400 flex-shrink-0 cursor-pointer" onClick={() => setExpandedStudentId(isExpanded ? null : student.id)}>{isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</div>
                                     </div>
 
                                     {isExpanded && (
@@ -373,13 +373,13 @@ export default function TeacherDashboard() {
                                             <div className="grid md:grid-cols-2 gap-0 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                                                 {/* Compétences */}
                                                 <div className="p-5">
-                                                    <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-3">
-                                                        <BookOpen size={15} className="text-purple-500" />
-                                                        Compétences validées ({student.acquiredCount})
-                                                    </h4>
-                                                    {student.competencies.filter(c => c.acquired).length > 0 ? (
+                                                    <a href={`/teacher/student/${student.id}`} className="font-bold text-purple-600 hover:text-purple-800 text-sm flex items-center gap-2 mb-3 hover:underline">
+                                                        <BookOpen size={15} />
+                                                        Compétences ({student.competencies.filter(c => c.status > 0).length}/{TOTAL_COMPETENCIES})
+                                                    </a>
+                                                    {student.competencies.filter(c => c.status > 0).length > 0 ? (
                                                         <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                                                            {student.competencies.filter(c => c.acquired).map(c => {
+                                                            {student.competencies.filter(c => c.status > 0).map(c => {
                                                                 const comp = ALL_COMPETENCIES.find(x => x.id === c.competencyId);
                                                                 const STATUS_LABELS: Record<number, { label: string; color: string; bg: string }> = {
                                                                     1: { label: "Novice", color: "text-slate-600", bg: "bg-slate-100" },
@@ -387,13 +387,16 @@ export default function TeacherDashboard() {
                                                                     3: { label: "Compétent", color: "text-green-600", bg: "bg-green-50" },
                                                                     4: { label: "Expert", color: "text-purple-600", bg: "bg-purple-50" }
                                                                 };
-                                                                const s = STATUS_LABELS[c.status] || STATUS_LABELS[3];
+                                                                const s = STATUS_LABELS[c.status] || STATUS_LABELS[1];
 
                                                                 return comp ? (
                                                                     <div key={c.competencyId} className="flex items-start gap-2 text-xs py-1.5 border-b border-slate-100 last:border-0">
-                                                                        <CheckCircle2 size={13} className="text-green-500 mt-0.5 flex-shrink-0" />
+                                                                        {c.acquired
+                                                                            ? <CheckCircle2 size={13} className="text-green-500 mt-0.5 flex-shrink-0" />
+                                                                            : <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-300 mt-0.5 flex-shrink-0" />
+                                                                        }
                                                                         <div className="min-w-0">
-                                                                            <div className="font-medium text-slate-700 flex items-center gap-2">
+                                                                            <div className="font-medium text-slate-700 flex items-center gap-2 flex-wrap">
                                                                                 {comp.label}
                                                                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${s.bg} ${s.color}`}>
                                                                                     {s.label}
@@ -402,7 +405,7 @@ export default function TeacherDashboard() {
                                                                             {c.proof && (
                                                                                 c.proof.startsWith("http") ? (
                                                                                     <a href={c.proof} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700 hover:underline truncate mt-0.5 block">
-                                                                                        <span className="flex items-center gap-1"><BookOpen size={10} /> Voir la preuve jointe</span>
+                                                                                        <span className="flex items-center gap-1"><BookOpen size={10} /> Voir la preuve</span>
                                                                                     </a>
                                                                                 ) : (
                                                                                     <div className="text-slate-400 truncate mt-0.5">{c.proof}</div>
@@ -414,7 +417,7 @@ export default function TeacherDashboard() {
                                                             })}
                                                         </div>
                                                     ) : (
-                                                        <p className="text-slate-400 text-xs italic">Aucune compétence validée.</p>
+                                                        <p className="text-slate-400 text-xs italic">Aucune compétence évaluée par l&apos;élève.</p>
                                                     )}
                                                 </div>
 
