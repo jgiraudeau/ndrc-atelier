@@ -10,6 +10,7 @@ import Link from "next/link"
 
 interface CpanelAccount {
   id: string; username: string; domain: string; plan: string; status: string; createdAt: string
+  cpanelToken: string | null
   whmConfig: { label: string; host: string }
 }
 interface WhmAccount { user: string; domain: string; diskused: string; disklimit: string; plan: string }
@@ -93,6 +94,11 @@ export default function CpanelAccountsPage() {
   const [copied, setCopied] = useState(false)
   const [createError, setCreateError] = useState("")
 
+  // Token cPanel
+  const [editingToken, setEditingToken] = useState<string | null>(null)
+  const [tokenValue, setTokenValue] = useState("")
+  const [savingToken, setSavingToken] = useState(false)
+
   // Assignation
   const [assigning, setAssigning] = useState<string | null>(null)
   const [assignClassId, setAssignClassId] = useState<Record<string, string>>({})
@@ -167,6 +173,18 @@ export default function CpanelAccountsPage() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ classId, cpanelUser: null }),
     })
+    load()
+  }
+
+  const saveToken = async (id: string) => {
+    setSavingToken(true)
+    await fetch("/api/admin/cpanel-accounts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id, cpanelToken: tokenValue }),
+    })
+    setSavingToken(false)
+    setEditingToken(null)
     load()
   }
 
@@ -283,6 +301,45 @@ export default function CpanelAccountsPage() {
                             <span className="text-xs text-slate-400 italic">Non assigné</span>
                           )}
                         </div>
+                      </div>
+
+                      {/* Token API cPanel */}
+                      <div className="mt-3 pt-3 border-t border-slate-100">
+                        {editingToken === acc.id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="Token API cPanel (Security → Manage API Tokens)"
+                              value={tokenValue}
+                              onChange={e => setTokenValue(e.target.value)}
+                              className="flex-1 text-xs px-2 py-1.5 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono"
+                            />
+                            <button onClick={() => saveToken(acc.id)} disabled={savingToken}
+                              className="px-2 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-40 shrink-0">
+                              {savingToken ? "..." : "Sauvegarder"}
+                            </button>
+                            <button onClick={() => setEditingToken(null)} className="px-2 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200 shrink-0">
+                              Annuler
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {acc.cpanelToken ? (
+                              <span className="flex items-center gap-1 text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
+                                <CheckCircle size={11} /> Token cPanel configuré
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                                <AlertCircle size={11} /> Pas de token cPanel
+                              </span>
+                            )}
+                            <button
+                              onClick={() => { setEditingToken(acc.id); setTokenValue(acc.cpanelToken ?? "") }}
+                              className="text-xs text-blue-600 hover:underline">
+                              {acc.cpanelToken ? "Modifier" : "Ajouter le token →"}
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Assigner à une classe */}

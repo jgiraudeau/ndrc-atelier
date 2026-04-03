@@ -58,7 +58,8 @@ export interface SoftaculousInstallResult {
 }
 
 /**
- * Installe WordPress ou PrestaShop via Softaculous pour un utilisateur cPanel.
+ * Installe WordPress ou PrestaShop via Softaculous.
+ * Utilise une session WHM (create_user_session) pour s'authentifier.
  */
 export async function installApp(
   whmConfig: WhmClientConfig,
@@ -121,6 +122,71 @@ export async function installApp(
     siteUrl,
     adminUrl,
   }
+}
+
+/**
+ * Installe WordPress ou PrestaShop via Softaculous en utilisant un token API cPanel directement.
+ * Contourne WHM — utile sur o2switch mutualisé où l'API WHM est bloquée depuis les IPs externes.
+ */
+export async function installAppWithToken(
+  host: string,         // hostname du serveur cPanel (ex: "campus01.o2switch.net")
+  cpanelUser: string,
+  cpanelToken: string,  // token API généré dans cPanel → Security → Manage API Tokens
+  app: SoftAppType,
+  options: {
+    domain: string
+    path?: string
+    adminUser: string
+    adminPass: string
+    adminEmail: string
+    siteName: string
+  },
+): Promise<SoftaculousInstallResult> {
+  const scriptId = SOFTACULOUS_SCRIPT_IDS[app]
+
+  const params = new URLSearchParams({
+    act: "install",
+    api: "json",
+    softdomain: options.domain,
+    softdirectory: options.path ?? "",
+    admin_username: options.adminUser,
+    admin_pass: options.adminPass,
+    admin_email: options.adminEmail,
+    site_name: options.siteName,
+    overwrite_existing: "0",
+  })
+
+  const url = `https://${host}:2083/frontend/jupiter/softaculous/index.live.php?softid=${scriptId}&${params.toString()}`
+
+  const prev = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+  let res: Response
+  try {
+    res = await fetchWithRetry(url, {
+      headers: { Authorization: `cpanel ${cpanelUser}:${cpanelToken}` },
+    })
+  } finally {
+    if (prev === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
+    else process.env.NODE_TLS_REJECT_UNAUTHORIZED = prev
+  }
+
+  const text = await res.text()
+  const parsed = parseMaybeJson(text)
+
+  const softError = extractSoftError(parsed)
+  if (softError) return { success: false, error: softError }
+  if (!res.ok) return { success: false, error: `HTTP ${res.status}` }
+
+  const installId = typeof parsed?.insid === "string"
+    ? parsed.insid
+    : typeof parsed?.data === "object" && parsed?.data !== null
+      ? String((parsed.data as Record<string, unknown>).insid ?? "")
+      : ""
+
+  const siteUrl = `https://${options.domain}${options.path ? `/${options.path}` : ""}`
+  const adminUrl = app === "wordpress" ? `${siteUrl}/wp-admin` : `${siteUrl}/admin`
+
+  return { success: true, installId: installId || undefined, siteUrl, adminUrl }
 }
 
 /**

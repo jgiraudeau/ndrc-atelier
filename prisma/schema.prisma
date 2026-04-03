@@ -43,14 +43,15 @@ model WhmConfig {
 // COMPTE CPANEL (1 par classe, géré via WHM)
 // ============================================================
 model CpanelAccount {
-  id        String   @id @default(cuid())
-  username  String                        // ex: "ndrc1" (nom du compte cPanel)
-  domain    String                        // domaine principal du compte
-  password  String                        // mot de passe cPanel
-  plan      String   @default("default")
-  status    String   @default("active")   // "active" | "suspended" | "unknown"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  username     String                        // ex: "ndrc1" (nom du compte cPanel)
+  domain       String                        // domaine principal du compte
+  password     String                        // mot de passe cPanel
+  cpanelToken  String?                       // token API cPanel (pour Softaculous sans WHM)
+  plan         String   @default("default")
+  status       String   @default("active")   // "active" | "suspended" | "unknown"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   whmConfig   WhmConfig @relation(fields: [whmConfigId], references: [id], onDelete: Cascade)
   whmConfigId String

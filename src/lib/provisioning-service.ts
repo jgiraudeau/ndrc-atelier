@@ -5,7 +5,7 @@
  */
 
 import { prisma } from "@/src/lib/prisma"
-import { installApp, type SoftAppType } from "@/src/lib/softaculous-service"
+import { installApp, installAppWithToken, type SoftAppType } from "@/src/lib/softaculous-service"
 import { generatePassword, type WhmClientConfig } from "@/src/lib/whm-service"
 import { SiteStatus } from "@prisma/client"
 
@@ -30,6 +30,7 @@ export async function runProvisioningJob(jobId: string): Promise<void> {
       whmConfig: true,
     },
   })
+
 
   if (!job) throw new Error(`Job ${jobId} introuvable`)
   if (job.status === "RUNNING") throw new Error(`Job ${jobId} déjà en cours`)
@@ -62,6 +63,14 @@ export async function runProvisioningJob(jobId: string): Promise<void> {
     user: job.whmConfig.whmUser,
     token: job.whmConfig.whmToken,
   }
+
+  // Récupérer le token cPanel du compte assigné à la classe (pour bypass WHM API)
+  const cpanelAccount = job.class.cpanelUser
+    ? await prisma.cpanelAccount.findFirst({
+        where: { username: job.class.cpanelUser, whmConfigId: job.whmConfig.id },
+        select: { cpanelToken: true },
+      })
+    : null
 
   const app: SoftAppType = job.siteType === "WORDPRESS" ? "wordpress" : "prestashop"
   const students = job.class.students
@@ -102,13 +111,17 @@ export async function runProvisioningJob(jobId: string): Promise<void> {
     })
 
     try {
-      const result = await installApp(whmConfig, site.cpanelUser, app, {
+      // Utilise le token cPanel direct si disponible (bypass WHM — o2switch mutualisé)
+      const installOptions = {
         domain: `${subdomain}.${domain}`,
         adminUser,
         adminPass,
         adminEmail: `${adminUser}@ndrc-atelier.local`,
         siteName: `${student.firstName} ${student.lastName} — ${app === "wordpress" ? "WordPress" : "PrestaShop"}`,
-      })
+      }
+      const result = cpanelAccount?.cpanelToken
+        ? await installAppWithToken(job.whmConfig.host, site.cpanelUser, cpanelAccount.cpanelToken, app, installOptions)
+        : await installApp(whmConfig, site.cpanelUser, app, installOptions)
 
       if (result.success) {
         await prisma.site.update({
