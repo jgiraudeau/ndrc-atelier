@@ -3,15 +3,19 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/src/lib/prisma";
 import { signToken } from "@/src/lib/jwt";
 import { apiError, apiSuccess } from "@/src/lib/api-helpers";
+import { teacherLoginSchema } from "@/src/lib/validations";
 
 // POST /api/auth/teacher/login
 export async function POST(request: NextRequest) {
     try {
-        const { email, password } = await request.json();
+        const body = await request.json();
+        const parseResult = teacherLoginSchema.safeParse(body);
 
-        if (!email || !password) {
-            return apiError("Email et mot de passe requis");
+        if (!parseResult.success) {
+            return apiError("Email ou mot de passe invalide", 400);
         }
+
+        const { email, password } = parseResult.data;
 
         const teacher = await prisma.teacher.findUnique({
             where: { email: email.toLowerCase().trim() },

@@ -1,5 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
 
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is missing in production environment");
+}
+
 const SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || "fallback-dev-secret-CHANGE-IN-PRODUCTION"
 );

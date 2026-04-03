@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { requireAuth, apiError, apiSuccess } from "@/src/lib/api-helpers";
+import { progressUpdateSchema } from "@/src/lib/validations";
 
 // GET /api/progress — progression de l'élève connecté
 export async function GET(request: NextRequest) {
+// ... (unchanged part skipped in chunk but I must replace from start line or specific lines)
     const auth = await requireAuth(request, ["STUDENT"]);
     if ("status" in auth) return auth;
     const studentId = auth.payload.sub;
@@ -33,11 +35,14 @@ export async function POST(request: NextRequest) {
     const studentId = auth.payload.sub;
 
     try {
-        const { competencyId, acquired, status, proof } = await request.json();
+        const body = await request.json();
+        const parseResult = progressUpdateSchema.safeParse(body);
 
-        if (!competencyId || typeof acquired !== "boolean" || typeof status !== "number") {
-            return apiError("competencyId, acquired (boolean), et status (number) requis");
+        if (!parseResult.success) {
+            return apiError("Données invalides : " + parseResult.error.issues[0].message, 400);
         }
+
+        const { competencyId, acquired, status, proof } = parseResult.data;
 
         const record = await prisma.progress.upsert({
             where: { studentId_competencyId: { studentId, competencyId } },

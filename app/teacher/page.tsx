@@ -6,7 +6,7 @@ import {
     Users, Download, LogOut, FileSpreadsheet, Search,
     Upload, CheckCircle2, XCircle, MessageSquarePlus,
     ChevronDown, ChevronUp, Trash2, Send, BookOpen, RefreshCw,
-    Globe, Save, Target
+    Globe, Save, Target, Zap
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -211,6 +211,9 @@ export default function TeacherDashboard() {
                         Console — <span className="text-purple-600">{teacherName}</span>
                     </h1>
                     <div className="flex items-center gap-2">
+                        <Link href="/teacher/provisioning" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors" title="Créer les sites élèves">
+                            <Zap size={16} /> Sites élèves
+                        </Link>
                         <Link href="/teacher/missions" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors" title="Missions">
                             <Target size={16} /> Missions
                         </Link>

@@ -23,14 +23,14 @@ export async function POST(request: NextRequest) {
                 where: { classId, teacherId: auth.payload.sub },
                 select: { id: true },
             });
-            targetIds = students.map(s => s.id);
+            targetIds = students.map((s: { id: string }) => s.id);
         } else if (studentIds && studentIds.length > 0) {
             // Par étudiants : vérifier qu'ils appartiennent bien à CE prof
             const verified = await prisma.student.findMany({
                 where: { id: { in: studentIds }, teacherId: auth.payload.sub },
                 select: { id: true },
             });
-            targetIds = verified.map(s => s.id);
+            targetIds = verified.map((s: { id: string }) => s.id);
         }
 
         if (targetIds.length === 0) {

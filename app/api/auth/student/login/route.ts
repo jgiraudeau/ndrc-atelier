@@ -3,15 +3,19 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/src/lib/prisma";
 import { signToken } from "@/src/lib/jwt";
 import { apiError, apiSuccess } from "@/src/lib/api-helpers";
+import { studentLoginSchema } from "@/src/lib/validations";
 
 // POST /api/auth/student/login
 export async function POST(request: NextRequest) {
     try {
-        const { identifier, password } = await request.json();
+        const body = await request.json();
+        const parseResult = studentLoginSchema.safeParse(body);
 
-        if (!identifier || !password) {
-            return apiError("Identifiant et mot de passe requis");
+        if (!parseResult.success) {
+            return apiError("Identifiant ou mot de passe invalide", 400);
         }
+
+        const { identifier, password } = parseResult.data;
 
         const student = await prisma.student.findUnique({
             where: { identifier: identifier.toLowerCase().trim() },

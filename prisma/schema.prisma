@@ -7,20 +7,53 @@ datasource db {
 }
 
 // ============================================================
+// ADMIN (super-admin plateforme)
+// ============================================================
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+
+  whmConfigs WhmConfig[]
+}
+
+// ============================================================
+// CONFIGURATION WHM (serveur o2switch)
+// ============================================================
+model WhmConfig {
+  id       String  @id @default(cuid())
+  label    String                       // ex: "o2switch Campus 01"
+  host     String                       // ex: "campus01.o2switch.net"
+  port     Int     @default(2087)
+  whmUser  String
+  whmToken String                       // token WHM API
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  admin   Admin  @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  adminId String
+
+  provisioningJobs ProvisioningJob[]
+}
+
+// ============================================================
 // FORMATEUR
 // ============================================================
 model Teacher {
-  id           String    @id @default(cuid())
-  email        String    @unique
+  id           String   @id @default(cuid())
+  email        String   @unique
   passwordHash String
   name         String
-  status       String    @default("pending")  // "pending", "active", "rejected"
-  createdAt    DateTime  @default(now())
+  status       String   @default("pending") // "pending" | "active" | "rejected"
+  createdAt    DateTime @default(now())
 
-  students           Student[]
-  classes            Class[]
-  comments           Comment[]
-  missionAssignments MissionAssignment[]
+  students            Student[]
+  classes             Class[]
+  comments            Comment[]
+  missionAssignments  MissionAssignment[]
+  provisioningJobs    ProvisioningJob[]
 }
 
 // ============================================================
@@ -28,15 +61,17 @@ model Teacher {
 // ============================================================
 model Class {
   id        String   @id @default(cuid())
-  code      String                      // ex: "NDRC1"
-  name      String                      // ex: "BTS NDRC 1ère Année"
+  code      String                       // ex: "NDRC1"
+  name      String                       // ex: "BTS NDRC 1ère Année"
+  year      String?                      // ex: "2025-2026"
   teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   teacherId String
   createdAt DateTime @default(now())
 
-  students  Student[]
+  students         Student[]
+  provisioningJobs ProvisioningJob[]
 
-  @@unique([code, teacherId])           // Un code unique par formateur
+  @@unique([code, teacherId])
 }
 
 // ============================================================
@@ -46,42 +81,112 @@ model Student {
   id           String   @id @default(cuid())
   firstName    String
   lastName     String
-  identifier   String   @unique          // ex: jean.dupont (auto-généré)
-  passwordHash String                        // Mot de passe hashé avec bcrypt
-  wpUrl        String?                        // URL du site WordPress de l'élève
-  prestaUrl    String?                        // URL du site PrestaShop de l'élève
-  teacher     Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  teacherId   String
-  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  classId     String
-  createdAt   DateTime @default(now())
+  identifier   String   @unique         // ex: jean.dupont (auto-généré)
+  passwordHash String
+  wpUrl        String?                         // URL manuelle WP (ou auto-remplie après provisioning)
+  prestaUrl    String?                         // URL manuelle PS (ou auto-remplie après provisioning)
+  teacher      Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId    String
+  class        Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId      String
+  createdAt    DateTime @default(now())
 
-  progress  Progress[]
-  comments  Comment[]
-  missions  MissionAssignment[]
+  progress   Progress[]
+  comments   Comment[]
+  missions   MissionAssignment[]
+  sites      Site[]
 
-  @@unique([classId, firstName, lastName]) // Pas de doublon dans la même classe
+  @@unique([classId, firstName, lastName])
 }
 
 // ============================================================
-// PROGRESSION (1 ligne = 1 compétence validée)
+// SITE (WP ou PrestaShop assigné à un élève)
+// ============================================================
+model Site {
+  id                   String     @id @default(cuid())
+  type                 SiteType                     // WORDPRESS | PRESTASHOP
+  subdomain            String                       // ex: "jean-dupont-wp"
+  domain               String                       // ex: "campus01.o2switch.net"
+  url                  String                       // URL complète du site
+  cpanelUser           String                       // compte cPanel hébergeant le site
+  softaculousInstallId String?                      // ID installation Softaculous
+  adminUrl             String?                      // URL wp-admin ou /admin PrestaShop
+  adminUser            String?                      // identifiant admin du site
+  adminPass            String?                      // mot de passe admin du site
+  status               SiteStatus @default(PENDING)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  student           Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId         String
+  provisioningJob   ProvisioningJob? @relation(fields: [provisioningJobId], references: [id])
+  provisioningJobId String?
+
+  @@unique([subdomain, domain])
+}
+
+enum SiteType {
+  WORDPRESS
+  PRESTASHOP
+}
+
+enum SiteStatus {
+  PENDING    // en attente de création
+  CREATING   // création en cours
+  ACTIVE     // opérationnel
+  ERROR      // erreur lors de la création
+  SUSPENDED  // suspendu
+}
+
+// ============================================================
+// JOB DE PROVISIONING (1 job = création sites d'un type pour 1 classe)
+// ============================================================
+model ProvisioningJob {
+  id        String             @id @default(cuid())
+  status    ProvisioningStatus @default(PENDING)
+  siteType  SiteType                               // WORDPRESS | PRESTASHOP
+  log       String[]                               // journal des opérations
+  error     String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId   String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId String
+
+  whmConfig   WhmConfig @relation(fields: [whmConfigId], references: [id])
+  whmConfigId String
+
+  sites Site[]
+}
+
+enum ProvisioningStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL   // certains sites créés, d'autres en erreur
+}
+
+// ============================================================
+// PROGRESSION (1 ligne = 1 compétence par élève)
 // ============================================================
 model Progress {
   id           String   @id @default(cuid())
   student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId    String
-  competencyId String                   // ex: "wp-niv1-identite"
+  competencyId String                  // ex: "wp-niv1-identite"
   acquired     Boolean  @default(false)
-  status       Int      @default(0)       // 0=Non évalué, 1=Novice, 2=Apprenti, 3=Compétent, 4=Expert
-  proof        String?                   // URL ou commentaire de l'élève
+  status       Int      @default(0)    // 0=Non évalué, 1=Novice, 2=Apprenti, 3=Compétent, 4=Expert
+  proof        String?                 // URL capture ou lien vers réalisation
   updatedAt    DateTime @updatedAt
 
-  // Évaluation formateur
-  teacherStatus    Int?                 // 0-4, null = pas encore évalué par le prof
-  teacherFeedback  String?              // Annotation par compétence
-  teacherGradedAt  DateTime?            // Date de dernière évaluation prof
+  teacherStatus    Int?
+  teacherFeedback  String?
+  teacherGradedAt  DateTime?
 
-  @@unique([studentId, competencyId])   // 1 enregistrement par compétence par élève
+  @@unique([studentId, competencyId])
 }
 
 // ============================================================
@@ -103,12 +208,12 @@ model Comment {
 model Mission {
   id            String   @id @default(cuid())
   title         String
-  content       String                        // Markdown de la mission
-  platform      String                        // "WORDPRESS" | "PRESTASHOP"
-  level         Int      @default(2)          // 1-4
-  competencyIds String[]                      // IDs des compétences ciblées
-  createdBy     String                        // ID Teacher ou Student
-  createdByRole String                        // "TEACHER" | "STUDENT"
+  content       String                       // Markdown de la mission
+  platform      String                       // "WORDPRESS" | "PRESTASHOP"
+  level         Int      @default(2)         // 1-4
+  competencyIds String[]
+  createdBy     String
+  createdByRole String                       // "TEACHER" | "STUDENT"
   createdAt     DateTime @default(now())
 
   assignments MissionAssignment[]
@@ -125,7 +230,7 @@ model MissionAssignment {
   studentId   String
   teacher     Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   teacherId   String
-  status      String    @default("pending")   // "pending" | "in_progress" | "completed"
+  status      String    @default("pending")  // "pending" | "in_progress" | "completed"
   assignedAt  DateTime  @default(now())
   completedAt DateTime?
 

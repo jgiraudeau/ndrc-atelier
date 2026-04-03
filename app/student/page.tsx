@@ -274,6 +274,9 @@ export default function StudentDashboard() {
                     Lien PrestaShop non configuré
                   </div>
                 )}
+                <Link href="/student/sites" className="block w-full border border-slate-200 text-slate-600 font-bold text-center py-2 rounded-xl text-sm hover:bg-slate-50 transition-colors">
+                  Voir mes sites &amp; identifiants →
+                </Link>
               </div>
             </section>
 
