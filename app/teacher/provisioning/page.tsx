@@ -70,7 +70,7 @@ export default function TeacherProvisioningPage() {
   const load = useCallback(async () => {
     const [jobsRes, configsRes] = await Promise.all([
       fetch("/api/provisioning/jobs", { headers: { Authorization: `Bearer ${token}` } }),
-      fetch("/api/admin/whm-config", { headers: { Authorization: `Bearer ${token}` } }),
+      fetch("/api/teacher/whm-config", { headers: { Authorization: `Bearer ${token}` } }),
     ])
     if (jobsRes.status === 401) { router.push("/teacher/login"); return }
     const [jobsData, configsData] = await Promise.all([jobsRes.json(), configsRes.json()])
