@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft, UserCog, Plus, Download, CheckCircle, AlertCircle,
-  Link2, RefreshCw, Eye, EyeOff, Copy, Trash2
+  Link2, RefreshCw, Eye, EyeOff, Copy, Trash2, PenLine
 } from "lucide-react"
 import Link from "next/link"
 
@@ -20,6 +20,59 @@ interface ClassItem {
 }
 
 type Tab = "managed" | "create" | "import"
+
+function ManualImport({ whmConfigId, token, onImported }: { whmConfigId: string; token: string | null; onImported: () => void }) {
+  const [username, setUsername] = useState("")
+  const [domain, setDomain] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+    setSuccess("")
+    const res = await fetch("/api/admin/cpanel-accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ whmConfigId, username: username.trim(), domain: domain.trim(), password: "imported", skipWhmCreate: true }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setError(data.error ?? "Erreur"); setLoading(false); return }
+    setSuccess(`Compte "${username}" importé !`)
+    setUsername("")
+    setDomain("")
+    setLoading(false)
+    onImported()
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+        <PenLine size={13} /> Saisie manuelle (sans API WHM)
+      </h3>
+      {error && <div className="text-xs text-red-600 mb-2 flex items-center gap-1"><AlertCircle size={12} />{error}</div>}
+      {success && <div className="text-xs text-green-600 mb-2 flex items-center gap-1"><CheckCircle size={12} />{success}</div>}
+      <form onSubmit={handleSubmit} className="flex items-end gap-2">
+        <div className="flex-1">
+          <label className="block text-[10px] font-bold text-slate-500 mb-1">Nom du compte cPanel</label>
+          <input type="text" placeholder="ndrc1a" value={username} onChange={e => setUsername(e.target.value.toLowerCase())}
+            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" required />
+        </div>
+        <div className="flex-1">
+          <label className="block text-[10px] font-bold text-slate-500 mb-1">Domaine</label>
+          <input type="text" placeholder="ndrc1a.campus01.o2switch.net" value={domain} onChange={e => setDomain(e.target.value)}
+            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" required />
+        </div>
+        <button type="submit" disabled={loading}
+          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-40 transition-colors shrink-0">
+          {loading ? "..." : "Importer"}
+        </button>
+      </form>
+    </div>
+  )
+}
 
 export default function CpanelAccountsPage() {
   const router = useRouter()
@@ -393,13 +446,32 @@ export default function CpanelAccountsPage() {
             )}
 
             {whmError && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm flex items-start gap-2">
-                <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                <div><strong>Erreur de connexion WHM :</strong><br />{whmError}</div>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                  <div><strong>Erreur de connexion WHM :</strong><br />{whmError}</div>
+                </div>
+                {whmError.includes("403") && (
+                  <div className="bg-red-100 rounded-lg p-3 text-xs text-red-800 space-y-1">
+                    <p className="font-bold">Causes possibles (403 Forbidden) :</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      <li>Le token API a des <strong>restrictions d&apos;ACL</strong> : dans WHM → <em>Development → Manage API Tokens</em>, vérifiez que le token a accès à <code>list-accts</code> et <code>create-user-session</code> (ou choisissez &quot;All Features&quot;)</li>
+                      <li>Le token a une <strong>restriction d&apos;IP</strong> : supprimez-la ou mettez &quot;All IPs&quot; pour autoriser Vercel</li>
+                      <li>O2switch mutualisé bloque cet appel WHM API pour les revendeurs</li>
+                    </ul>
+                    <p className="mt-1 font-bold">Astuce : utilisez la saisie manuelle ci-dessous pour importer quand même.</p>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* Saisie manuelle comme alternative */}
+            {form.whmConfigId && (
+              <ManualImport whmConfigId={form.whmConfigId} token={token} onImported={load} />
+            )}
+
             {whmAccounts.length === 0 && !whmLoading && !whmError && form.whmConfigId && (
-              <div className="text-center py-8 text-slate-400 text-sm">Cliquez sur &quot;Charger les comptes&quot;</div>
+              <div className="text-center py-4 text-slate-400 text-sm">Cliquez sur &quot;Charger les comptes&quot; ou utilisez la saisie manuelle ci-dessous.</div>
             )}
           </div>
         )}
