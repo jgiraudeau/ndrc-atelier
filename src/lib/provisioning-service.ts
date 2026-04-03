@@ -10,24 +10,12 @@ import { generatePassword, type WhmClientConfig } from "@/src/lib/whm-service"
 import { SiteStatus } from "@prisma/client"
 
 /**
- * Génère un sous-domaine unique pour un élève.
- * ex: jean-dupont-wp.campus01.o2switch.net
+ * Génère un sous-domaine numéroté pour un élève.
+ * ex: wp1, wp2, ps1, ps2...
+ * Le sous-domaine est relatif au compte cPanel de la classe.
  */
-function generateSubdomain(
-  firstName: string,
-  lastName: string,
-  app: SoftAppType,
-  classCode: string,
-): string {
-  const clean = (s: string) =>
-    s.toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "")
-
-  return `${clean(firstName)}-${clean(lastName)}-${classCode.toLowerCase()}-${app === "wordpress" ? "wp" : "ps"}`
+function generateSubdomain(index: number, app: SoftAppType): string {
+  return `${app === "wordpress" ? "wp" : "ps"}${index + 1}`
 }
 
 /**
@@ -84,8 +72,9 @@ export async function runProvisioningJob(jobId: string): Promise<void> {
   let successCount = 0
   let errorCount = 0
 
-  for (const student of students) {
-    const subdomain = generateSubdomain(student.firstName, student.lastName, app, job.class.code)
+  for (let i = 0; i < students.length; i++) {
+    const student = students[i]
+    const subdomain = generateSubdomain(i, app)
     const adminUser = `${student.firstName.slice(0, 4).toLowerCase()}${student.lastName.slice(0, 4).toLowerCase()}`
     const adminPass = generatePassword(12)
 

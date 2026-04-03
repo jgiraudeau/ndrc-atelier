@@ -88,7 +88,11 @@ export interface WHMAccount {
 }
 
 export async function listAccounts(config: WhmClientConfig): Promise<WHMAccount[]> {
-  const data = await whmFetch(config, "listaccts")
+  // searchtype=owner filtre sur les comptes créés par ce revendeur (mutualisé o2switch)
+  const data = await whmFetch(config, "listaccts", {
+    searchtype: "owner",
+    search: config.user,
+  })
   return data?.data?.acct || []
 }
 
