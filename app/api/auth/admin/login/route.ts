@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { signToken } from "@/src/lib/jwt";
 import { apiError, apiSuccess } from "@/src/lib/api-helpers";
+import { prisma } from "@/src/lib/prisma";
 
 // POST /api/auth/admin/login
 export async function POST(request: NextRequest) {
@@ -12,28 +13,26 @@ export async function POST(request: NextRequest) {
             return apiError("Email et mot de passe requis");
         }
 
-        const adminEmail = process.env.ADMIN_EMAIL;
-        const adminPassword = process.env.ADMIN_PASSWORD;
+        const admin = await prisma.admin.findUnique({
+            where: { email: email.toLowerCase().trim() },
+        });
 
-        if (!adminEmail || !adminPassword) {
-            return apiError("Configuration admin manquante", 500);
-        }
-
-        if (email.toLowerCase().trim() !== adminEmail.toLowerCase()) {
+        if (!admin) {
             return apiError("Identifiants incorrects", 401);
         }
 
-        if (password !== adminPassword) {
+        const valid = await bcrypt.compare(password, admin.passwordHash);
+        if (!valid) {
             return apiError("Identifiants incorrects", 401);
         }
 
         const token = await signToken({
-            sub: "admin",
+            sub: admin.id,
             role: "ADMIN",
-            name: "Administrateur",
+            name: admin.name,
         });
 
-        return apiSuccess({ token, name: "Administrateur", role: "ADMIN" });
+        return apiSuccess({ token, name: admin.name, role: "ADMIN" });
     } catch (err) {
         console.error("[admin/login]", err);
         return apiError("Erreur serveur", 500);
