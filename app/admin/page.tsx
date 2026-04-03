@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, CheckCircle, XCircle, Trash2, Users, BookOpen, LogOut, Clock, Filter, Server, Zap } from "lucide-react";
+import { Shield, CheckCircle, XCircle, Trash2, Users, BookOpen, LogOut, Clock, Filter, Server, Zap, UserCog } from "lucide-react";
 import Link from "next/link";
 import { apiGetTeachers, apiManageTeacher, type TeacherAdmin } from "@/src/lib/api-client";
 
@@ -109,7 +109,7 @@ export default function AdminDashboardPage() {
 
             <div className="max-w-4xl mx-auto p-6">
                 {/* Liens rapides nouveaux modules */}
-                <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="grid grid-cols-3 gap-3 mb-6">
                     <Link href="/admin/whm-config" className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
                         <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 group-hover:bg-blue-200 transition-colors">
                             <Server size={18} />
@@ -117,6 +117,15 @@ export default function AdminDashboardPage() {
                         <div>
                             <div className="font-bold text-slate-800 text-sm">Config WHM</div>
                             <div className="text-xs text-slate-400">Serveurs o2switch</div>
+                        </div>
+                    </Link>
+                    <Link href="/admin/cpanel-accounts" className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 group-hover:bg-green-200 transition-colors">
+                            <UserCog size={18} />
+                        </div>
+                        <div>
+                            <div className="font-bold text-slate-800 text-sm">Comptes cPanel</div>
+                            <div className="text-xs text-slate-400">1 par classe</div>
                         </div>
                     </Link>
                     <Link href="/admin/provisioning" className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">

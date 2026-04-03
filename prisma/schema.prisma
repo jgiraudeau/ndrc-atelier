@@ -36,6 +36,26 @@ model WhmConfig {
   adminId String
 
   provisioningJobs ProvisioningJob[]
+  cpanelAccounts   CpanelAccount[]
+}
+
+// ============================================================
+// COMPTE CPANEL (1 par classe, géré via WHM)
+// ============================================================
+model CpanelAccount {
+  id        String   @id @default(cuid())
+  username  String                        // ex: "ndrc1" (nom du compte cPanel)
+  domain    String                        // domaine principal du compte
+  password  String                        // mot de passe cPanel
+  plan      String   @default("default")
+  status    String   @default("active")   // "active" | "suspended" | "unknown"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  whmConfig   WhmConfig @relation(fields: [whmConfigId], references: [id], onDelete: Cascade)
+  whmConfigId String
+
+  @@unique([username, whmConfigId])
 }
 
 // ============================================================
@@ -61,12 +81,13 @@ model Teacher {
 // ============================================================
 model Class {
   id        String   @id @default(cuid())
-  code      String                       // ex: "NDRC1"
-  name      String                       // ex: "BTS NDRC 1ère Année"
-  year      String?                      // ex: "2025-2026"
-  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  teacherId String
-  createdAt DateTime @default(now())
+  code        String                       // ex: "NDRC1"
+  name        String                       // ex: "BTS NDRC 1ère Année"
+  year        String?                      // ex: "2025-2026"
+  cpanelUser  String?                      // compte cPanel assigné à cette classe
+  teacher     Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId   String
+  createdAt   DateTime @default(now())
 
   students         Student[]
   provisioningJobs ProvisioningJob[]

@@ -46,6 +46,15 @@ export async function runProvisioningJob(jobId: string): Promise<void> {
   if (!job) throw new Error(`Job ${jobId} introuvable`)
   if (job.status === "RUNNING") throw new Error(`Job ${jobId} déjà en cours`)
 
+  // Vérifier qu'un compte cPanel est assigné à la classe
+  if (!job.class.cpanelUser) {
+    await prisma.provisioningJob.update({
+      where: { id: jobId },
+      data: { status: "FAILED", error: "Aucun compte cPanel assigné à cette classe. Configurez-le dans /admin/cpanel-accounts." },
+    })
+    return
+  }
+
   const log: string[] = []
   const addLog = async (msg: string) => {
     log.push(`[${new Date().toISOString()}] ${msg}`)
@@ -90,7 +99,7 @@ export async function runProvisioningJob(jobId: string): Promise<void> {
         subdomain,
         domain,
         url: `https://${subdomain}.${domain}`,
-        cpanelUser: job.class.teacherId, // compte cPanel du prof (à affiner)
+        cpanelUser: job.class.cpanelUser!,
         adminUser,
         adminPass,
         status: SiteStatus.CREATING,
