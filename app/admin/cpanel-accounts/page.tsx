@@ -30,6 +30,7 @@ export default function CpanelAccountsPage() {
   const [classes, setClasses] = useState<ClassItem[]>([])
   const [loading, setLoading] = useState(true)
   const [whmLoading, setWhmLoading] = useState(false)
+  const [whmError, setWhmError] = useState("")
 
   // Form création
   const [form, setForm] = useState({ whmConfigId: "", username: "", domain: "", plan: "default" })
@@ -64,11 +65,17 @@ export default function CpanelAccountsPage() {
   const loadWhmAccounts = async () => {
     if (!form.whmConfigId) return
     setWhmLoading(true)
-    const res = await fetch(`/api/admin/cpanel-accounts/whm-list?whmConfigId=${form.whmConfigId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const data = await res.json()
-    setWhmAccounts(data.accounts ?? [])
+    setWhmError("")
+    try {
+      const res = await fetch(`/api/admin/cpanel-accounts/whm-list?whmConfigId=${form.whmConfigId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) { setWhmError(data.error ?? `Erreur ${res.status}`); setWhmLoading(false); return }
+      setWhmAccounts(data.accounts ?? [])
+    } catch (e: unknown) {
+      setWhmError(e instanceof Error ? e.message : "Erreur réseau")
+    }
     setWhmLoading(false)
   }
 
@@ -385,7 +392,13 @@ export default function CpanelAccountsPage() {
               </div>
             )}
 
-            {whmAccounts.length === 0 && !whmLoading && form.whmConfigId && (
+            {whmError && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm flex items-start gap-2">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                <div><strong>Erreur de connexion WHM :</strong><br />{whmError}</div>
+              </div>
+            )}
+            {whmAccounts.length === 0 && !whmLoading && !whmError && form.whmConfigId && (
               <div className="text-center py-8 text-slate-400 text-sm">Cliquez sur &quot;Charger les comptes&quot;</div>
             )}
           </div>

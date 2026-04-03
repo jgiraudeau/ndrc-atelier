@@ -26,6 +26,12 @@ export async function GET(request: NextRequest) {
     token: whmConfig.whmToken,
   }
 
-  const accounts = await listAccounts(clientConfig)
-  return NextResponse.json({ accounts })
+  try {
+    const accounts = await listAccounts(clientConfig)
+    return NextResponse.json({ accounts })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error("[whm-list]", msg)
+    return apiError(`Erreur WHM : ${msg}`, 502)
+  }
 }
