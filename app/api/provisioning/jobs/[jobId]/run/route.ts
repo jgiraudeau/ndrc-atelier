@@ -2,10 +2,16 @@
  * POST /api/provisioning/jobs/[jobId]/run
  * Lance l'exécution d'un job de provisioning.
  * Réservé aux formateurs (TEACHER) et admins (ADMIN).
+ *
+ * Utilise waitUntil() pour garder la fonction Vercel vivante
+ * pendant toute la durée du provisioning (installations WP/PS longues).
  */
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth, apiError } from "@/src/lib/api-helpers"
+import { waitUntil } from "@vercel/functions"
+import { requireAuth } from "@/src/lib/api-helpers"
 import { runProvisioningJob } from "@/src/lib/provisioning-service"
+
+export const maxDuration = 300 // 5 minutes max (plan Pro Vercel)
 
 export async function POST(
   request: NextRequest,
@@ -16,11 +22,12 @@ export async function POST(
 
   const { jobId } = await params
 
-  // Lancer le job en tâche de fond (sans await) pour retour immédiat
-  // Le statut peut être consulté via GET /api/provisioning/jobs
-  runProvisioningJob(jobId).catch((err: unknown) => {
-    console.error(`[provisioning] Job ${jobId} failed:`, err)
-  })
+  // waitUntil() maintient la fonction vivante après l'envoi de la réponse
+  waitUntil(
+    runProvisioningJob(jobId).catch((err: unknown) => {
+      console.error(`[provisioning] Job ${jobId} failed:`, err)
+    })
+  )
 
   return NextResponse.json({ message: "Job démarré", jobId }, { status: 202 })
 }
