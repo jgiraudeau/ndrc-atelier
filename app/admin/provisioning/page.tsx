@@ -16,7 +16,7 @@ interface ProvisioningJob {
 }
 
 interface WhmConfig { id: string; label: string; host: string }
-interface Class { id: string; name: string; code: string; students: { id: string }[] }
+interface Class { id: string; name: string; code: string; _count: { students: number } }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   PENDING: { label: "En attente", color: "text-amber-600 bg-amber-50" },
@@ -41,14 +41,16 @@ export default function AdminProvisioningPage() {
   const token = typeof window !== "undefined" ? localStorage.getItem("ndrc_token") : null
 
   const load = useCallback(async () => {
-    const [jobsRes, configsRes] = await Promise.all([
+    const [jobsRes, configsRes, classesRes] = await Promise.all([
       fetch("/api/provisioning/jobs", { headers: { Authorization: `Bearer ${token}` } }),
       fetch("/api/admin/whm-config", { headers: { Authorization: `Bearer ${token}` } }),
+      fetch("/api/admin/classes", { headers: { Authorization: `Bearer ${token}` } }),
     ])
     if (jobsRes.status === 401) { router.push("/admin/login"); return }
-    const [jobsData, configsData] = await Promise.all([jobsRes.json(), configsRes.json()])
+    const [jobsData, configsData, classesData] = await Promise.all([jobsRes.json(), configsRes.json(), classesRes.json()])
     setJobs(jobsData.jobs ?? [])
     setConfigs(configsData.configs ?? [])
+    setClasses(classesData.classes ?? [])
     setLoading(false)
   }, [token, router])
 
@@ -163,7 +165,7 @@ export default function AdminProvisioningPage() {
                 <option value="">Sélectionner une classe</option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.code}) — {c.students.length} élèves
+                    {c.name} ({c.code}) — {c._count.students} élèves
                   </option>
                 ))}
               </select>
