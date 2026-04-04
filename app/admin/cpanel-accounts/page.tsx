@@ -94,9 +94,10 @@ export default function CpanelAccountsPage() {
   const [copied, setCopied] = useState(false)
   const [createError, setCreateError] = useState("")
 
-  // Token cPanel
+  // Token + domaine cPanel
   const [editingToken, setEditingToken] = useState<string | null>(null)
   const [tokenValue, setTokenValue] = useState("")
+  const [domainValue, setDomainValue] = useState("")
   const [savingToken, setSavingToken] = useState(false)
 
   // Assignation
@@ -181,7 +182,7 @@ export default function CpanelAccountsPage() {
     await fetch("/api/admin/cpanel-accounts", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ id, cpanelToken: tokenValue }),
+      body: JSON.stringify({ id, cpanelToken: tokenValue, domain: domainValue }),
     })
     setSavingToken(false)
     setEditingToken(null)
@@ -303,24 +304,35 @@ export default function CpanelAccountsPage() {
                         </div>
                       </div>
 
-                      {/* Token API cPanel */}
+                      {/* Token + Domaine cPanel */}
                       <div className="mt-3 pt-3 border-t border-slate-100">
                         {editingToken === acc.id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              placeholder="Token API cPanel (Security → Manage API Tokens)"
-                              value={tokenValue}
-                              onChange={e => setTokenValue(e.target.value)}
-                              className="flex-1 text-xs px-2 py-1.5 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono"
-                            />
-                            <button onClick={() => saveToken(acc.id)} disabled={savingToken}
-                              className="px-2 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-40 shrink-0">
-                              {savingToken ? "..." : "Sauvegarder"}
-                            </button>
-                            <button onClick={() => setEditingToken(null)} className="px-2 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200 shrink-0">
-                              Annuler
-                            </button>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                placeholder="Domaine (ex: exam2026.ltpsully.o2switch.site)"
+                                value={domainValue}
+                                onChange={e => setDomainValue(e.target.value)}
+                                className="flex-1 text-xs px-2 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                placeholder="Token API cPanel (Security → Manage API Tokens)"
+                                value={tokenValue}
+                                onChange={e => setTokenValue(e.target.value)}
+                                className="flex-1 text-xs px-2 py-1.5 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono"
+                              />
+                              <button onClick={() => saveToken(acc.id)} disabled={savingToken}
+                                className="px-2 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-40 shrink-0">
+                                {savingToken ? "..." : "Sauvegarder"}
+                              </button>
+                              <button onClick={() => setEditingToken(null)} className="px-2 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200 shrink-0">
+                                Annuler
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
@@ -334,7 +346,7 @@ export default function CpanelAccountsPage() {
                               </span>
                             )}
                             <button
-                              onClick={() => { setEditingToken(acc.id); setTokenValue(acc.cpanelToken ?? "") }}
+                              onClick={() => { setEditingToken(acc.id); setTokenValue(acc.cpanelToken ?? ""); setDomainValue(acc.domain ?? "") }}
                               className="text-xs text-blue-600 hover:underline">
                               {acc.cpanelToken ? "Modifier" : "Ajouter le token →"}
                             </button>
