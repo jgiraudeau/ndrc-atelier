@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import {
   Zap, ArrowLeft, Play, CheckCircle, XCircle, Clock,
-  AlertCircle, RefreshCw, Globe, ShoppingCart
+  AlertCircle, RefreshCw, Globe, ShoppingCart, Trash2
 } from "lucide-react"
 import Link from "next/link"
 
@@ -318,6 +318,19 @@ export default function TeacherProvisioningPage() {
                     )}
                     {job.status === "COMPLETED" && <CheckCircle size={20} className="text-green-500" />}
                     {job.status === "FAILED" && <XCircle size={20} className="text-red-500" />}
+                    {(job.status === "FAILED" || job.status === "COMPLETED" || job.status === "PARTIAL") && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Supprimer ce job ?")) return
+                          await fetch(`/api/provisioning/jobs/${job.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
+                          load()
+                        }}
+                        className="text-slate-300 hover:text-red-500 transition-colors"
+                        title="Supprimer"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                     {job.log.length > 0 && (
                       <button
                         onClick={() => setExpandedJob(expandedJob === job.id ? null : job.id)}
