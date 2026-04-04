@@ -5,7 +5,7 @@
  */
 
 import { prisma } from "@/src/lib/prisma"
-import { installApp, installAppWithToken, type SoftAppType } from "@/src/lib/softaculous-service"
+import { installApp, installAppWithToken, createSubdomainWithToken, type SoftAppType } from "@/src/lib/softaculous-service"
 import { generatePassword, type WhmClientConfig } from "@/src/lib/whm-service"
 import { SiteStatus } from "@prisma/client"
 
@@ -111,6 +111,23 @@ export async function runProvisioningJob(jobId: string): Promise<void> {
     })
 
     try {
+      // Créer le sous-domaine dans cPanel si token disponible
+      if (cpanelAccount?.cpanelToken) {
+        const subResult = await createSubdomainWithToken(
+          job.whmConfig.host,
+          site.cpanelUser,
+          cpanelAccount.cpanelToken,
+          subdomain,
+          domain,
+        )
+        if (!subResult.success) {
+          await addLog(`  ⚠ Sous-domaine ${subdomain} : ${subResult.error}`)
+          // On continue quand même — le sous-domaine existe peut-être déjà
+        } else {
+          await addLog(`  → Sous-domaine ${subdomain}.${domain} créé`)
+        }
+      }
+
       // Utilise le token cPanel direct si disponible (bypass WHM — o2switch mutualisé)
       const installOptions = {
         domain: `${subdomain}.${domain}`,

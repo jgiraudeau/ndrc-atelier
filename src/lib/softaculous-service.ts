@@ -125,6 +125,48 @@ export async function installApp(
 }
 
 /**
+ * Crée un sous-domaine dans cPanel via l'API token (UAPI SubDomain).
+ * Doit être appelé avant installAppWithToken si le sous-domaine n'existe pas.
+ */
+export async function createSubdomainWithToken(
+  host: string,
+  cpanelUser: string,
+  cpanelToken: string,
+  subdomain: string,   // ex: "wp1"
+  rootDomain: string,  // ex: "campus01.o2switch.net"
+): Promise<{ success: boolean; error?: string }> {
+  const url = `https://${host}:2083/execute/SubDomain/addsubdomain`
+  const body = new URLSearchParams({ domain: subdomain, rootdomain: rootDomain })
+
+  const prev = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+  try {
+    const res = await fetchWithRetry(url, {
+      method: "POST",
+      headers: {
+        Authorization: `cpanel ${cpanelUser}:${cpanelToken}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    })
+    const data = await res.json() as Record<string, unknown>
+    // UAPI retourne errors:[] si succès, ou status:0 si échec
+    if (data.status === 0) {
+      const errors = Array.isArray(data.errors) ? (data.errors as string[]).join(", ") : "Erreur inconnue"
+      // "already exists" n'est pas une vraie erreur
+      if (errors.toLowerCase().includes("exists")) return { success: true }
+      return { success: false, error: errors }
+    }
+    return { success: true }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  } finally {
+    if (prev === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
+    else process.env.NODE_TLS_REJECT_UNAUTHORIZED = prev
+  }
+}
+
+/**
  * Installe WordPress ou PrestaShop via Softaculous en utilisant un token API cPanel directement.
  * Contourne WHM — utile sur o2switch mutualisé où l'API WHM est bloquée depuis les IPs externes.
  */
