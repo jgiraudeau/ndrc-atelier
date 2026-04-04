@@ -255,6 +255,17 @@ export default function AdminProvisioningPage() {
                         }
                       </button>
                     )}
+                    {(job.status === "RUNNING" || job.status === "PENDING") && running !== job.id && (
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/provisioning/jobs/${job.id}/cancel`, { method: "POST", headers: { Authorization: `Bearer ${token}` } })
+                          load()
+                        }}
+                        className="flex items-center gap-1 px-2 py-1.5 bg-red-100 text-red-600 rounded-lg font-bold text-xs hover:bg-red-200 transition-colors"
+                      >
+                        <XCircle size={12} /> Annuler
+                      </button>
+                    )}
                     {job.status === "COMPLETED" && <CheckCircle size={20} className="text-green-500 shrink-0" />}
                     {job.status === "FAILED" && <XCircle size={20} className="text-red-500 shrink-0" />}
                   </div>
