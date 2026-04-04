@@ -212,6 +212,9 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
     })
   }
 
-  const remaining = await prisma.site.count({ where: { provisioningJobId: jobId, status: SiteStatus.PENDING } })
+  // Vérifier s'il reste des sites PENDING ou CREATING
+  const remaining = await prisma.site.count({
+    where: { provisioningJobId: jobId, status: { in: [SiteStatus.PENDING, SiteStatus.CREATING] } }
+  })
   return { done: remaining === 0 }
 }

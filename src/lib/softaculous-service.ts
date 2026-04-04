@@ -186,26 +186,33 @@ export async function installAppWithToken(
 ): Promise<SoftaculousInstallResult> {
   const scriptId = SOFTACULOUS_SCRIPT_IDS[app]
 
-  const params = new URLSearchParams({
-    act: "install",
-    api: "json",
-    softdomain: options.domain,
-    softdirectory: options.path ?? "",
+  // Utilise act=software (POST form) comme whm-manager — act=install retourne 403
+  const body = new URLSearchParams({
+    softsubmit: "1",
+    auto_upgrade: "1",
+    protocol: "https://",
+    domain: options.domain,
+    in_dir: options.path ?? "",
     admin_username: options.adminUser,
     admin_pass: options.adminPass,
     admin_email: options.adminEmail,
     site_name: options.siteName,
-    overwrite_existing: "0",
+    language: "fr",
   })
 
-  const url = `https://${host}:2083/frontend/jupiter/softaculous/index.live.php?softid=${scriptId}&${params.toString()}`
+  const url = `https://${host}:2083/frontend/jupiter/softaculous/index.live.php?act=software&soft=${scriptId}&api=json`
 
   const prev = process.env.NODE_TLS_REJECT_UNAUTHORIZED
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
   let res: Response
   try {
     res = await fetchWithRetry(url, {
-      headers: { Authorization: `cpanel ${cpanelUser}:${cpanelToken}` },
+      method: "POST",
+      headers: {
+        Authorization: `cpanel ${cpanelUser}:${cpanelToken}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
     })
   } finally {
     if (prev === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
