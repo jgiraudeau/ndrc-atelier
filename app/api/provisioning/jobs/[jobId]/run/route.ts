@@ -7,11 +7,10 @@
  * pendant toute la durée du provisioning (installations WP/PS longues).
  */
 import { NextRequest, NextResponse } from "next/server"
-import { waitUntil } from "@vercel/functions"
 import { requireAuth } from "@/src/lib/api-helpers"
-import { runProvisioningJob } from "@/src/lib/provisioning-service"
+import { initProvisioningJob } from "@/src/lib/provisioning-service"
 
-export const maxDuration = 300 // 5 minutes max (plan Pro Vercel)
+export const maxDuration = 60
 
 export async function POST(
   request: NextRequest,
@@ -22,12 +21,10 @@ export async function POST(
 
   const { jobId } = await params
 
-  // waitUntil() maintient la fonction vivante après l'envoi de la réponse
-  waitUntil(
-    runProvisioningJob(jobId).catch((err: unknown) => {
-      console.error(`[provisioning] Job ${jobId} failed:`, err)
-    })
-  )
+  // Initialise le job (PENDING → RUNNING) et crée les entrées Site
+  // Le client appellera ensuite /step en boucle pour traiter élève par élève
+  const result = await initProvisioningJob(jobId)
+  if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
 
-  return NextResponse.json({ message: "Job démarré", jobId }, { status: 202 })
+  return NextResponse.json({ message: "Job initialisé", jobId }, { status: 202 })
 }

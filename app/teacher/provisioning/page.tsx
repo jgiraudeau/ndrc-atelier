@@ -107,12 +107,27 @@ export default function TeacherProvisioningPage() {
 
   const handleRun = async (jobId: string) => {
     setRunning(jobId)
+
+    // 1. Initialiser le job
     await fetch(`/api/provisioning/jobs/${jobId}/run`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     })
+
+    // 2. Appeler /step en boucle jusqu'à { done: true } (Vercel Hobby 60s)
+    let done = false
+    while (!done) {
+      const res = await fetch(`/api/provisioning/jobs/${jobId}/step`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      done = data.done ?? true
+      await load()
+    }
+
     setRunning(null)
-    setTimeout(load, 1000)
+    await load()
   }
 
   if (loading) return (
