@@ -351,8 +351,11 @@ export default function CpanelAccountsPage() {
                           className="flex-1 text-xs px-2 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
                         >
                           <option value="">Assigner à une classe...</option>
-                          {classesWithout.map(c => (
-                            <option key={c.id} value={c.id}>{c.name} ({c.code}) — {c._count.students} élèves</option>
+                          {classes.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} ({c.code}) — {c._count.students} élèves
+                              {c.cpanelUser ? ` [actuellement: ${c.cpanelUser}]` : ""}
+                            </option>
                           ))}
                         </select>
                         <button

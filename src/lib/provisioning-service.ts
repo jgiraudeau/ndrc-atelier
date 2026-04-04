@@ -1,11 +1,10 @@
 /**
  * Provisioning Service — ndrc-atelier
  * Orchestre la création automatique de sites WP / PrestaShop pour une classe entière.
- * 1 job = 1 type de site (WORDPRESS ou PRESTASHOP) pour tous les élèves d'une classe.
  *
  * Architecture Vercel Hobby (60s limit) :
- * - runProvisioningStep() traite UN seul élève et retourne
- * - Le client appelle /step en boucle jusqu'à { done: true }
+ * - initProvisioningJob() : PENDING → RUNNING, crée les Sites
+ * - runProvisioningStep() : traite UN seul élève, appelé en boucle par le client
  */
 
 import { prisma } from "@/src/lib/prisma"
@@ -15,6 +14,16 @@ import { SiteStatus } from "@prisma/client"
 
 function generateSubdomain(index: number, app: SoftAppType): string {
   return `${app === "wordpress" ? "wp" : "ps"}${index + 1}`
+}
+
+/** Sanitize un nom en identifiant valide (alphanum minuscule, max 8 car) */
+function sanitizeUsername(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 8) || "user"
 }
 
 /**
@@ -38,15 +47,23 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
     return { error: "Aucun compte cPanel assigné à cette classe." }
   }
 
+  // Récupérer le VRAI domaine du compte cPanel (pas le host WHM)
+  const cpanelAccount = await prisma.cpanelAccount.findFirst({
+    where: { username: job.class.cpanelUser, whmConfigId: job.whmConfig.id },
+    select: { domain: true, cpanelToken: true },
+  })
+
+  // Le domaine des sous-domaines = domaine du compte cPanel
+  const domain = cpanelAccount?.domain ?? job.whmConfig.host
+
   const app: SoftAppType = job.siteType === "WORDPRESS" ? "wordpress" : "prestashop"
-  const domain = job.whmConfig.host
   const students = job.class.students
 
   // Créer toutes les entrées Site en PENDING (une par élève)
   for (let i = 0; i < students.length; i++) {
     const student = students[i]
     const subdomain = generateSubdomain(i, app)
-    const adminUser = `${student.firstName.slice(0, 4).toLowerCase()}${student.lastName.slice(0, 4).toLowerCase()}`
+    const adminUser = sanitizeUsername(`${student.firstName}${student.lastName}`)
     const adminPass = generatePassword(12)
 
     await prisma.site.upsert({
@@ -67,7 +84,7 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
     })
   }
 
-  const initLog = [`[${new Date().toISOString()}] Démarrage provisioning ${app.toUpperCase()} pour ${students.length} élèves de la classe ${job.class.name}`]
+  const initLog = [`[${new Date().toISOString()}] Démarrage provisioning ${app.toUpperCase()} pour ${students.length} élèves de la classe ${job.class.name} (domaine: ${domain})`]
   await prisma.provisioningJob.update({
     where: { id: jobId },
     data: { status: "RUNNING", log: initLog },
@@ -79,7 +96,6 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
 /**
  * Traite UN seul élève (le prochain site PENDING du job).
  * Retourne { done: true } quand tous les élèves sont traités.
- * Conçu pour être appelé en boucle depuis le client (Vercel Hobby 60s).
  */
 export async function runProvisioningStep(jobId: string): Promise<{ done: boolean; error?: string }> {
   const job = await prisma.provisioningJob.findUnique({
@@ -90,7 +106,6 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
   if (!job) return { done: true, error: `Job ${jobId} introuvable` }
   if (job.status === "COMPLETED" || job.status === "FAILED") return { done: true }
 
-  // Initialiser si nécessaire
   if (job.status === "PENDING") {
     const initResult = await initProvisioningJob(jobId)
     if (initResult.error) return { done: true, error: initResult.error }
@@ -104,28 +119,26 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
   })
 
   if (!site) {
-    // Plus rien à traiter — calculer le statut final
+    // Plus rien à traiter — statut final
     const allSites = await prisma.site.findMany({ where: { provisioningJobId: jobId } })
     const successCount = allSites.filter(s => s.status === SiteStatus.ACTIVE).length
     const errorCount = allSites.filter(s => s.status === SiteStatus.ERROR).length
     const finalStatus = errorCount === 0 ? "COMPLETED" : successCount === 0 ? "FAILED" : "PARTIAL"
-
-    const finalLog = `[${new Date().toISOString()}] Terminé. ${successCount} succès, ${errorCount} erreurs. Statut : ${finalStatus}`
     await prisma.provisioningJob.update({
       where: { id: jobId },
       data: {
         status: finalStatus,
-        log: { push: finalLog },
+        log: { push: `[${new Date().toISOString()}] Terminé. ${successCount} succès, ${errorCount} erreurs. Statut : ${finalStatus}` },
         updatedAt: new Date(),
       },
     })
     return { done: true }
   }
 
-  // Récupérer le token cPanel
+  // Token et config cPanel
   const cpanelAccount = await prisma.cpanelAccount.findFirst({
     where: { username: job.class.cpanelUser!, whmConfigId: job.whmConfig.id },
-    select: { cpanelToken: true },
+    select: { cpanelToken: true, domain: true },
   })
 
   const whmConfig: WhmClientConfig = {
@@ -142,19 +155,21 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
   await prisma.provisioningJob.update({
     where: { id: jobId },
     data: {
-      log: { push: `[${new Date().toISOString()}] → ${site.student.firstName} ${site.student.lastName} : création ${subdomain}...` },
+      log: { push: `[${new Date().toISOString()}] → ${site.student.firstName} ${site.student.lastName} : création ${subdomain}.${domain}...` },
       updatedAt: new Date(),
     },
   })
 
   try {
-    // 1. Créer le sous-domaine
+    // 1. Créer le sous-domaine via token cPanel
     if (cpanelAccount?.cpanelToken) {
-      const subResult = await createSubdomainWithToken(job.whmConfig.host, cpanelUser, cpanelAccount.cpanelToken, subdomain, domain)
+      const subResult = await createSubdomainWithToken(
+        job.whmConfig.host, cpanelUser, cpanelAccount.cpanelToken, subdomain, domain
+      )
       if (!subResult.success) {
         await prisma.provisioningJob.update({
           where: { id: jobId },
-          data: { log: { push: `[${new Date().toISOString()}]   ⚠ Sous-domaine ${subdomain} : ${subResult.error}` } },
+          data: { log: { push: `[${new Date().toISOString()}]   ⚠ Sous-domaine : ${subResult.error}` } },
         })
       }
     }
@@ -164,7 +179,7 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
       domain: `${subdomain}.${domain}`,
       adminUser: adminUser!,
       adminPass: adminPass!,
-      adminEmail: `${adminUser}@ndrc-atelier.local`,
+      adminEmail: `${adminUser}@${domain}`,
       siteName: `${site.student.firstName} ${site.student.lastName} — ${app === "wordpress" ? "WordPress" : "PrestaShop"}`,
     }
 
@@ -197,7 +212,6 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
     })
   }
 
-  // Vérifier s'il reste des sites PENDING
   const remaining = await prisma.site.count({ where: { provisioningJobId: jobId, status: SiteStatus.PENDING } })
   return { done: remaining === 0 }
 }
