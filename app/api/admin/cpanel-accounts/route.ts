@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
   let body: { whmConfigId: string; username: string; domain: string; password?: string; cpanelToken?: string; plan?: string; skipWhmCreate?: boolean }
   try { body = await request.json() } catch { return apiError("Corps invalide") }
 
-  const { whmConfigId, username, domain, plan, skipWhmCreate } = body
+  const { whmConfigId, username, plan, skipWhmCreate } = body
+  // Nettoyer le domaine : supprimer http(s):// et slash final
+  const domain = body.domain.replace(/^https?:\/\//, "").replace(/\/$/, "")
   if (!whmConfigId || !username || !domain) {
     return apiError("whmConfigId, username et domain sont requis")
   }
@@ -78,9 +80,10 @@ export async function PATCH(request: NextRequest) {
   const auth = await requireAuth(request, ["ADMIN"])
   if (auth instanceof NextResponse) return auth
 
-  let body: { id: string; cpanelToken: string }
+  let body: { id: string; cpanelToken?: string; domain?: string }
   try { body = await request.json() } catch { return apiError("Corps invalide") }
   const { id, cpanelToken } = body
+  const domain = body.domain ? body.domain.replace(/^https?:\/\//, "").replace(/\/$/, "") : undefined
   if (!id) return apiError("id requis")
 
   const existing = await prisma.cpanelAccount.findFirst({
@@ -90,8 +93,11 @@ export async function PATCH(request: NextRequest) {
 
   const account = await prisma.cpanelAccount.update({
     where: { id },
-    data: { cpanelToken: cpanelToken || null },
-    select: { id: true, username: true, cpanelToken: true },
+    data: {
+      ...(cpanelToken !== undefined ? { cpanelToken: cpanelToken || null } : {}),
+      ...(domain !== undefined ? { domain } : {}),
+    },
+    select: { id: true, username: true, domain: true, cpanelToken: true },
   })
 
   return NextResponse.json({ account })
