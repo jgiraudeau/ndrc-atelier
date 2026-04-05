@@ -2,21 +2,19 @@
  * Provisioning Service — ndrc-atelier
  * Orchestre la création automatique de sites WP / PrestaShop pour une classe entière.
  *
- * Architecture Vercel Hobby (60s limit) :
- * - initProvisioningJob() : PENDING → RUNNING, crée les Sites
- * - runProvisioningStep() : traite UN seul élève, appelé en boucle par le client
+ * Même approche que whm-manager : session WHM → cookie cPanel → Softaculous.
+ * Architecture step-by-step pour contourner la limite 60s Vercel Hobby.
  */
 
 import { prisma } from "@/src/lib/prisma"
-import { installApp, installAppWithToken, createSubdomainWithToken, type SoftAppType } from "@/src/lib/softaculous-service"
 import { generatePassword, type WhmClientConfig } from "@/src/lib/whm-service"
+import { createSubdomain, installApp, type SoftAppType } from "@/src/lib/softaculous-service"
 import { SiteStatus } from "@prisma/client"
 
 function generateSubdomain(index: number, app: SoftAppType): string {
   return `${app === "wordpress" ? "wp" : "ps"}${index + 1}`
 }
 
-/** Sanitize un nom en identifiant valide (alphanum minuscule, max 8 car) */
 function sanitizeUsername(str: string): string {
   return str
     .toLowerCase()
@@ -28,7 +26,6 @@ function sanitizeUsername(str: string): string {
 
 /**
  * Initialise le job (PENDING → RUNNING) et crée les entrées Site en attente.
- * Appelé une fois avant la boucle de steps.
  */
 export async function initProvisioningJob(jobId: string): Promise<{ error?: string }> {
   const job = await prisma.provisioningJob.findUnique({
@@ -47,19 +44,15 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
     return { error: "Aucun compte cPanel assigné à cette classe." }
   }
 
-  // Récupérer le VRAI domaine du compte cPanel (pas le host WHM)
   const cpanelAccount = await prisma.cpanelAccount.findFirst({
     where: { username: job.class.cpanelUser, whmConfigId: job.whmConfig.id },
-    select: { domain: true, cpanelToken: true },
+    select: { domain: true },
   })
 
-  // Le domaine des sous-domaines = domaine du compte cPanel
   const domain = cpanelAccount?.domain ?? job.whmConfig.host
-
   const app: SoftAppType = job.siteType === "WORDPRESS" ? "wordpress" : "prestashop"
   const students = job.class.students
 
-  // Créer toutes les entrées Site en PENDING (une par élève)
   for (let i = 0; i < students.length; i++) {
     const student = students[i]
     const subdomain = generateSubdomain(i, app)
@@ -84,10 +77,12 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
     })
   }
 
-  const initLog = [`[${new Date().toISOString()}] Démarrage provisioning ${app.toUpperCase()} pour ${students.length} élèves de la classe ${job.class.name} (domaine: ${domain})`]
   await prisma.provisioningJob.update({
     where: { id: jobId },
-    data: { status: "RUNNING", log: initLog },
+    data: {
+      status: "RUNNING",
+      log: [`[${new Date().toISOString()}] Démarrage provisioning ${app.toUpperCase()} pour ${students.length} élèves (domaine: ${domain})`],
+    },
   })
 
   return {}
@@ -111,7 +106,6 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
     if (initResult.error) return { done: true, error: initResult.error }
   }
 
-  // Trouver le prochain site PENDING
   const site = await prisma.site.findFirst({
     where: { provisioningJobId: jobId, status: SiteStatus.PENDING },
     include: { student: true },
@@ -119,7 +113,6 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
   })
 
   if (!site) {
-    // Plus rien à traiter — statut final
     const allSites = await prisma.site.findMany({ where: { provisioningJobId: jobId } })
     const successCount = allSites.filter(s => s.status === SiteStatus.ACTIVE).length
     const errorCount = allSites.filter(s => s.status === SiteStatus.ERROR).length
@@ -135,12 +128,6 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
     return { done: true }
   }
 
-  // Token et config cPanel
-  const cpanelAccount = await prisma.cpanelAccount.findFirst({
-    where: { username: job.class.cpanelUser!, whmConfigId: job.whmConfig.id },
-    select: { cpanelToken: true, domain: true },
-  })
-
   const whmConfig: WhmClientConfig = {
     host: `https://${job.whmConfig.host}:${job.whmConfig.port}`,
     user: job.whmConfig.whmUser,
@@ -150,7 +137,6 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
   const app: SoftAppType = job.siteType === "WORDPRESS" ? "wordpress" : "prestashop"
   const { subdomain, domain, cpanelUser, adminUser, adminPass } = site
 
-  // Marquer CREATING
   await prisma.site.update({ where: { id: site.id }, data: { status: SiteStatus.CREATING } })
   await prisma.provisioningJob.update({
     where: { id: jobId },
@@ -161,40 +147,43 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
   })
 
   try {
-    // 1. Créer le sous-domaine via token cPanel
-    if (cpanelAccount?.cpanelToken) {
-      const subResult = await createSubdomainWithToken(
-        job.whmConfig.host, cpanelUser, cpanelAccount.cpanelToken, subdomain, domain
-      )
-      if (!subResult.success) {
-        await prisma.provisioningJob.update({
-          where: { id: jobId },
-          data: { log: { push: `[${new Date().toISOString()}]   ⚠ Sous-domaine : ${subResult.error}` } },
-        })
-      }
+    // 1. Créer le sous-domaine via WHM
+    const subResult = await createSubdomain(whmConfig, cpanelUser, subdomain, domain)
+    if (!subResult.success) {
+      await prisma.provisioningJob.update({
+        where: { id: jobId },
+        data: { log: { push: `[${new Date().toISOString()}]   ⚠ Sous-domaine : ${subResult.error}` } },
+      })
+    } else {
+      await prisma.provisioningJob.update({
+        where: { id: jobId },
+        data: { log: { push: `[${new Date().toISOString()}]   ✓ Sous-domaine ${subdomain}.${domain} créé` } },
+      })
     }
 
-    // 2. Installer l'application
-    const installOptions = {
-      domain: `${subdomain}.${domain}`,
-      adminUser: adminUser!,
-      adminPass: adminPass!,
+    // 2. Installer l'application via session WHM → Softaculous
+    const result = await installApp(whmConfig, cpanelUser, app, {
+      targetDomain: `${subdomain}.${domain}`,
       adminEmail: `${adminUser}@${domain}`,
       siteName: `${site.student.firstName} ${site.student.lastName} — ${app === "wordpress" ? "WordPress" : "PrestaShop"}`,
-    }
-
-    const result = cpanelAccount?.cpanelToken
-      ? await installAppWithToken(job.whmConfig.host, cpanelUser, cpanelAccount.cpanelToken, app, installOptions)
-      : await installApp(whmConfig, cpanelUser, app, installOptions)
+      adminUser: adminUser!,
+      adminPass: adminPass!,
+    })
 
     if (result.success) {
       await prisma.site.update({
         where: { id: site.id },
-        data: { status: SiteStatus.ACTIVE, url: result.siteUrl ?? site.url, adminUrl: result.adminUrl, softaculousInstallId: result.installId },
+        data: {
+          status: SiteStatus.ACTIVE,
+          url: result.siteUrl ?? site.url,
+          adminUrl: result.adminUrl,
+          adminUser: result.adminUser,
+          adminPass: result.adminPass,
+        },
       })
       await prisma.provisioningJob.update({
         where: { id: jobId },
-        data: { log: { push: `[${new Date().toISOString()}]   ✓ ${subdomain} créé — ${result.siteUrl}` }, updatedAt: new Date() },
+        data: { log: { push: `[${new Date().toISOString()}]   ✓ ${subdomain} actif — ${result.siteUrl}` }, updatedAt: new Date() },
       })
     } else {
       await prisma.site.update({ where: { id: site.id }, data: { status: SiteStatus.ERROR } })
@@ -212,7 +201,6 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
     })
   }
 
-  // Vérifier s'il reste des sites PENDING ou CREATING
   const remaining = await prisma.site.count({
     where: { provisioningJobId: jobId, status: { in: [SiteStatus.PENDING, SiteStatus.CREATING] } }
   })
