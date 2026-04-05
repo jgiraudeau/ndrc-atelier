@@ -73,7 +73,7 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
         studentId: student.id,
         provisioningJobId: jobId,
       },
-      update: { provisioningJobId: jobId },
+      update: { provisioningJobId: jobId, status: SiteStatus.PENDING, adminPass },
     })
   }
 
