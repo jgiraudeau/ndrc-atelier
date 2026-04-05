@@ -45,7 +45,7 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
   }
 
   const cpanelAccount = await prisma.cpanelAccount.findFirst({
-    where: { username: job.class.cpanelUser, whmConfigId: job.whmConfig.id },
+    where: { username: job.class.cpanelUser },
     select: { domain: true },
   })
 
