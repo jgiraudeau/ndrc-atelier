@@ -151,9 +151,14 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
     },
   })
 
+  console.log(`[provision] whmConfig:`, JSON.stringify({ host: whmConfig.host, user: whmConfig.user }))
+  console.log(`[provision] cpanelUser: ${cpanelUser}, subdomain: ${subdomain}, domain: ${domain}`)
+
   try {
     // 1. Créer le sous-domaine via WHM
+    console.log(`[provision] → createSubdomain...`)
     const subResult = await createSubdomain(whmConfig, cpanelUser, subdomain, domain)
+    console.log(`[provision] createSubdomain résultat:`, JSON.stringify(subResult))
     if (!subResult.success) {
       await prisma.provisioningJob.update({
         where: { id: jobId },
