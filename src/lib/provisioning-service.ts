@@ -198,8 +198,9 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
       })
     }
   } catch (err: unknown) {
-    await prisma.site.update({ where: { id: site.id }, data: { status: SiteStatus.ERROR } })
     const msg = err instanceof Error ? err.message : String(err)
+    console.error(`[provision] EXCEPTION sur ${subdomain}:`, msg, err)
+    await prisma.site.update({ where: { id: site.id }, data: { status: SiteStatus.ERROR } })
     await prisma.provisioningJob.update({
       where: { id: jobId },
       data: { log: { push: `[${new Date().toISOString()}]   ✗ ${subdomain} EXCEPTION : ${msg}` }, updatedAt: new Date() },
