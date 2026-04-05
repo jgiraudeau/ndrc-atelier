@@ -1,36 +1,26 @@
 /**
  * Provisioning Service — ndrc-atelier
- * Orchestre la création automatique de sites WP / PrestaShop pour une classe entière.
+ * Crée 30 sous-domaines WP ou PS sur un compte cPanel.
+ * Pas de lien élève à ce stade — affectation manuelle après.
  *
- * Même approche que whm-manager : session WHM → cookie cPanel → Softaculous.
- * Architecture step-by-step pour contourner la limite 60s Vercel Hobby.
+ * Architecture step-by-step (limite 60s Vercel, Railway sans limite).
  */
 
 import { prisma } from "@/src/lib/prisma"
-import { generatePassword, type WhmClientConfig } from "@/src/lib/whm-service"
-import { createSubdomain, installApp, type SoftAppType } from "@/src/lib/softaculous-service"
+import { type WhmClientConfig } from "@/src/lib/whm-service"
+import { createSubdomain, type SoftAppType } from "@/src/lib/softaculous-service"
 import { SiteStatus } from "@prisma/client"
+
+const SLOTS = 30 // nombre de sous-domaines à créer par job
 
 function generateSubdomain(index: number, app: SoftAppType): string {
   return `${app === "wordpress" ? "wp" : "ps"}${index + 1}`
 }
 
-function sanitizeUsername(str: string): string {
-  return str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "")
-    .slice(0, 8) || "user"
-}
-
-/**
- * Initialise le job (PENDING → RUNNING) et crée les entrées Site en attente.
- */
 export async function initProvisioningJob(jobId: string): Promise<{ error?: string }> {
   const job = await prisma.provisioningJob.findUnique({
     where: { id: jobId },
-    include: { class: { include: { students: true } }, whmConfig: true },
+    include: { class: true, whmConfig: true },
   })
 
   if (!job) return { error: `Job ${jobId} introuvable` }
@@ -51,14 +41,10 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
 
   const domain = cpanelAccount?.domain ?? job.whmConfig.host
   const app: SoftAppType = job.siteType === "WORDPRESS" ? "wordpress" : "prestashop"
-  const students = job.class.students
 
-  for (let i = 0; i < students.length; i++) {
-    const student = students[i]
+  // Créer 30 entrées Site PENDING (sans lien élève)
+  for (let i = 0; i < SLOTS; i++) {
     const subdomain = generateSubdomain(i, app)
-    const adminUser = sanitizeUsername(`${student.firstName}${student.lastName}`)
-    const adminPass = generatePassword(12)
-
     await prisma.site.upsert({
       where: { subdomain_domain: { subdomain, domain } },
       create: {
@@ -67,13 +53,10 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
         domain,
         url: `https://${subdomain}.${domain}`,
         cpanelUser: job.class.cpanelUser!,
-        adminUser,
-        adminPass,
         status: SiteStatus.PENDING,
-        studentId: student.id,
         provisioningJobId: jobId,
       },
-      update: { provisioningJobId: jobId, status: SiteStatus.PENDING, adminPass },
+      update: { provisioningJobId: jobId, status: SiteStatus.PENDING },
     })
   }
 
@@ -81,17 +64,13 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
     where: { id: jobId },
     data: {
       status: "RUNNING",
-      log: [`[${new Date().toISOString()}] Démarrage provisioning ${app.toUpperCase()} pour ${students.length} élèves (domaine: ${domain})`],
+      log: [`[${new Date().toISOString()}] Démarrage création ${SLOTS} sous-domaines ${app.toUpperCase()} sur ${domain}`],
     },
   })
 
   return {}
 }
 
-/**
- * Traite UN seul élève (le prochain site PENDING du job).
- * Retourne { done: true } quand tous les élèves sont traités.
- */
 export async function runProvisioningStep(jobId: string): Promise<{ done: boolean; error?: string }> {
   const job = await prisma.provisioningJob.findUnique({
     where: { id: jobId },
@@ -108,14 +87,8 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
 
   const site = await prisma.site.findFirst({
     where: { provisioningJobId: jobId, status: SiteStatus.PENDING },
-    include: { student: true },
     orderBy: { createdAt: "asc" },
   })
-  console.log(`[provision] Site PENDING trouvé:`, site ? `${site.subdomain}.${site.domain}` : "AUCUN")
-  if (!site) {
-    const allSitesDebug = await prisma.site.findMany({ where: { provisioningJobId: jobId }, select: { subdomain: true, status: true } })
-    console.log(`[provision] Sites du job:`, JSON.stringify(allSitesDebug))
-  }
 
   if (!site) {
     const allSites = await prisma.site.findMany({ where: { provisioningJobId: jobId } })
@@ -126,7 +99,7 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
       where: { id: jobId },
       data: {
         status: finalStatus,
-        log: { push: `[${new Date().toISOString()}] Terminé. ${successCount} succès, ${errorCount} erreurs. Statut : ${finalStatus}` },
+        log: { push: `[${new Date().toISOString()}] Terminé. ${successCount} succès, ${errorCount} erreurs.` },
         updatedAt: new Date(),
       },
     })
@@ -140,71 +113,32 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
   }
 
   const app: SoftAppType = job.siteType === "WORDPRESS" ? "wordpress" : "prestashop"
-  const { subdomain, domain, cpanelUser, adminUser, adminPass } = site
+  const { subdomain, domain, cpanelUser } = site
 
   await prisma.site.update({ where: { id: site.id }, data: { status: SiteStatus.CREATING } })
   await prisma.provisioningJob.update({
     where: { id: jobId },
-    data: {
-      log: { push: `[${new Date().toISOString()}] → ${site.student.firstName} ${site.student.lastName} : création ${subdomain}.${domain}...` },
-      updatedAt: new Date(),
-    },
+    data: { log: { push: `[${new Date().toISOString()}] → Création sous-domaine ${subdomain}.${domain}...` }, updatedAt: new Date() },
   })
 
-  console.log(`[provision] whmConfig:`, JSON.stringify({ host: whmConfig.host, user: whmConfig.user }))
-  console.log(`[provision] cpanelUser: ${cpanelUser}, subdomain: ${subdomain}, domain: ${domain}`)
-
   try {
-    // 1. Créer le sous-domaine via WHM
-    console.log(`[provision] → createSubdomain...`)
     const subResult = await createSubdomain(whmConfig, cpanelUser, subdomain, domain)
-    console.log(`[provision] createSubdomain résultat:`, JSON.stringify(subResult))
-    if (!subResult.success) {
-      await prisma.provisioningJob.update({
-        where: { id: jobId },
-        data: { log: { push: `[${new Date().toISOString()}]   ⚠ Sous-domaine : ${subResult.error}` } },
-      })
-    } else {
-      await prisma.provisioningJob.update({
-        where: { id: jobId },
-        data: { log: { push: `[${new Date().toISOString()}]   ✓ Sous-domaine ${subdomain}.${domain} créé` } },
-      })
-    }
 
-    // 2. Installer l'application via session WHM → Softaculous
-    const result = await installApp(whmConfig, cpanelUser, app, {
-      targetDomain: `${subdomain}.${domain}`,
-      adminEmail: `${adminUser}@${domain}`,
-      siteName: `${site.student.firstName} ${site.student.lastName} — ${app === "wordpress" ? "WordPress" : "PrestaShop"}`,
-      adminUser: adminUser!,
-      adminPass: adminPass!,
-    })
-
-    if (result.success) {
-      await prisma.site.update({
-        where: { id: site.id },
-        data: {
-          status: SiteStatus.ACTIVE,
-          url: result.siteUrl ?? site.url,
-          adminUrl: result.adminUrl,
-          adminUser: result.adminUser,
-          adminPass: result.adminPass,
-        },
-      })
+    if (subResult.success) {
+      await prisma.site.update({ where: { id: site.id }, data: { status: SiteStatus.ACTIVE } })
       await prisma.provisioningJob.update({
         where: { id: jobId },
-        data: { log: { push: `[${new Date().toISOString()}]   ✓ ${subdomain} actif — ${result.siteUrl}` }, updatedAt: new Date() },
+        data: { log: { push: `[${new Date().toISOString()}]   ✓ ${subdomain}.${domain} créé` }, updatedAt: new Date() },
       })
     } else {
       await prisma.site.update({ where: { id: site.id }, data: { status: SiteStatus.ERROR } })
       await prisma.provisioningJob.update({
         where: { id: jobId },
-        data: { log: { push: `[${new Date().toISOString()}]   ✗ ${subdomain} ERREUR : ${result.error}` }, updatedAt: new Date() },
+        data: { log: { push: `[${new Date().toISOString()}]   ✗ ${subdomain} ERREUR : ${subResult.error}` }, updatedAt: new Date() },
       })
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error(`[provision] EXCEPTION sur ${subdomain}:`, msg, err)
     await prisma.site.update({ where: { id: site.id }, data: { status: SiteStatus.ERROR } })
     await prisma.provisioningJob.update({
       where: { id: jobId },
