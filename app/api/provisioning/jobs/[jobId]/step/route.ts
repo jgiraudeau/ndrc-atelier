@@ -59,6 +59,8 @@ export async function POST(
       console.log(`[provision] Step ${step} résultat:`, JSON.stringify(result))
       done = result.done
     }
+    // Appel de finalisation : met le job en COMPLETED/FAILED/PARTIAL en DB
+    await runProvisioningStep(jobId)
     console.log(`[provision] Job ${jobId} terminé en ${step} steps`)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
