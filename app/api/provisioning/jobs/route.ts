@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     where: auth.payload.role === "TEACHER" ? { teacherId: auth.payload.sub } : {},
     include: {
       class: { select: { name: true, code: true } },
-      sites: { select: { id: true, status: true, type: true } },
+      sites: { select: { id: true, status: true, type: true, studentId: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 50,
