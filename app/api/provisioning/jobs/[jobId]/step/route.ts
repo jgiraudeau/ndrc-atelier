@@ -51,14 +51,19 @@ export async function POST(
   console.log(`[provision] Démarrage job ${jobId}`)
   let done = false
   let step = 0
-  while (!done) {
-    step++
-    console.log(`[provision] Step ${step} pour job ${jobId}`)
-    const result = await runProvisioningStep(jobId)
-    console.log(`[provision] Step ${step} résultat:`, JSON.stringify(result))
-    done = result.done
+  try {
+    while (!done) {
+      step++
+      console.log(`[provision] Step ${step} pour job ${jobId}`)
+      const result = await runProvisioningStep(jobId)
+      console.log(`[provision] Step ${step} résultat:`, JSON.stringify(result))
+      done = result.done
+    }
+    console.log(`[provision] Job ${jobId} terminé en ${step} steps`)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error(`[provision] ERREUR FATALE job ${jobId} step ${step}:`, msg, err)
   }
-  console.log(`[provision] Job ${jobId} terminé en ${step} steps`)
 
   return NextResponse.json({ done: true })
 }
