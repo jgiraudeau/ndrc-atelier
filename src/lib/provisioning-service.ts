@@ -11,10 +11,15 @@ import { type WhmClientConfig } from "@/src/lib/whm-service"
 import { createSubdomain, type SoftAppType } from "@/src/lib/softaculous-service"
 import { SiteStatus } from "@prisma/client"
 
-const SLOTS = 30 // nombre de sous-domaines à créer par job
+const SLOTS = 30       // sous-domaines élèves
+const MODEL_SLOTS = 3  // sous-domaines modèles
 
-function generateSubdomain(index: number, app: SoftAppType): string {
-  return `${app === "wordpress" ? "wp" : "ps"}${index + 1}`
+function generateSubdomains(app: SoftAppType): string[] {
+  const prefix = app === "wordpress" ? "wp" : "ps"
+  const modelPrefix = app === "wordpress" ? "modelewp" : "modeleps"
+  const models = Array.from({ length: MODEL_SLOTS }, (_, i) => `${modelPrefix}${i + 1}`)
+  const slots = Array.from({ length: SLOTS }, (_, i) => `${prefix}${i + 1}`)
+  return [...models, ...slots]
 }
 
 export async function initProvisioningJob(jobId: string): Promise<{ error?: string }> {
@@ -41,10 +46,12 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
 
   const domain = cpanelAccount?.domain ?? job.whmConfig.host
   const app: SoftAppType = job.siteType === "WORDPRESS" ? "wordpress" : "prestashop"
+  const subdomains = generateSubdomains(app)
 
-  // Créer 30 entrées Site PENDING (sans lien élève)
-  for (let i = 0; i < SLOTS; i++) {
-    const subdomain = generateSubdomain(i, app)
+  // Créer 33 entrées Site PENDING (3 modèles + 30 élèves)
+  const modelPrefix = app === "wordpress" ? "modelewp" : "modeleps"
+  for (const subdomain of subdomains) {
+    const isModel = subdomain.startsWith(modelPrefix)
     await prisma.site.upsert({
       where: { subdomain_domain: { subdomain, domain } },
       create: {
@@ -53,6 +60,7 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
         domain,
         url: `https://${subdomain}.${domain}`,
         cpanelUser: job.class.cpanelUser!,
+        isModel,
         status: SiteStatus.PENDING,
         provisioningJobId: jobId,
       },
@@ -64,7 +72,7 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
     where: { id: jobId },
     data: {
       status: "RUNNING",
-      log: [`[${new Date().toISOString()}] Démarrage création ${SLOTS} sous-domaines ${app.toUpperCase()} sur ${domain}`],
+      log: [`[${new Date().toISOString()}] Démarrage création ${subdomains.length} sous-domaines ${app.toUpperCase()} sur ${domain} (${MODEL_SLOTS} modèles + ${SLOTS} élèves)`],
     },
   })
 

@@ -131,6 +131,7 @@ model Site {
   domain               String                       // ex: "campus01.o2switch.net"
   url                  String                       // URL complète du site
   cpanelUser           String                       // compte cPanel hébergeant le site
+  isModel              Boolean  @default(false)        // true = sous-domaine modèle (source de clonage)
   softaculousInstallId String?                      // ID installation Softaculous
   adminUrl             String?                      // URL wp-admin ou /admin PrestaShop
   adminUser            String?                      // identifiant admin du site
