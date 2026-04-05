@@ -1,14 +1,15 @@
 /**
  * POST /api/provisioning/jobs/[jobId]/step
- * Traite UN seul élève (le prochain en attente) du job.
- * Appelé en boucle par le client — contourne la limite 60s Vercel Hobby.
  *
- * Si RAILWAY_PROVISIONING_URL est défini (Vercel) : délègue à Railway.
- * Sinon (Railway) : exécute le provisioning réel via WHM/Softaculous.
+ * Sur Vercel : fire-and-forget vers Railway (qui n'a pas de limite 60s),
+ * retourne immédiatement { done: false }. Le client poll le statut en DB.
+ *
+ * Sur Railway : exécute TOUS les élèves restants d'un coup, met à jour la DB.
  */
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth, apiError } from "@/src/lib/api-helpers"
 import { runProvisioningStep } from "@/src/lib/provisioning-service"
+import { waitUntil } from "@vercel/functions"
 
 export const maxDuration = 60
 
@@ -16,33 +17,42 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ jobId: string }> },
 ) {
-  const auth = await requireAuth(request, ["TEACHER", "ADMIN"])
-  if (auth instanceof NextResponse) return auth
-
   const { jobId } = await params
 
-  // Sur Vercel : déléguer à Railway qui a accès au WHM
   const railwayUrl = process.env.RAILWAY_PROVISIONING_URL
   const railwaySecret = process.env.RAILWAY_PROVISIONING_SECRET
+
+  // ── Sur Vercel : fire-and-forget vers Railway ────────────────────────────
   if (railwayUrl && railwaySecret) {
-    const res = await fetch(`${railwayUrl}/api/provisioning/jobs/${jobId}/step`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-provisioning-secret": railwaySecret,
-      },
-    })
-    const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
+    const auth = await requireAuth(request, ["TEACHER", "ADMIN"])
+    if (auth instanceof NextResponse) return auth
+
+    waitUntil(
+      fetch(`${railwayUrl}/api/provisioning/jobs/${jobId}/step`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-provisioning-secret": railwaySecret,
+        },
+      })
+    )
+
+    // Répond immédiatement — le client poll le statut DB toutes les 3s
+    return NextResponse.json({ done: false })
   }
 
-  // Sur Railway : exécution réelle
-  const secret = process.env.RAILWAY_PROVISIONING_SECRET
-  if (secret) {
+  // ── Sur Railway : vérifier le secret puis traiter tous les élèves ────────
+  if (railwaySecret) {
     const incoming = request.headers.get("x-provisioning-secret") ?? ""
-    if (incoming !== secret) return apiError("Non autorisé", 401)
+    if (incoming !== railwaySecret) return apiError("Non autorisé", 401)
   }
 
-  const result = await runProvisioningStep(jobId)
-  return NextResponse.json(result)
+  // Boucle sur tous les élèves restants (pas de limite de temps sur Railway)
+  let done = false
+  while (!done) {
+    const result = await runProvisioningStep(jobId)
+    done = result.done
+  }
+
+  return NextResponse.json({ done: true })
 }

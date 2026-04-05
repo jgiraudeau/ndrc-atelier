@@ -89,17 +89,11 @@ export default function AdminProvisioningPage() {
       headers: { Authorization: `Bearer ${token}` },
     })
 
-    // 2. Appeler /step en boucle jusqu'à { done: true } (Vercel Hobby 60s)
-    let done = false
-    while (!done) {
-      const res = await fetch(`/api/provisioning/jobs/${jobId}/step`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const data = await res.json()
-      done = data.done ?? true
-      await load()
-    }
+    // 2. Déclencher le provisioning sur Railway (fire-and-forget côté Vercel)
+    fetch(`/api/provisioning/jobs/${jobId}/step`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    })
 
     setRunning(null)
     await load()
