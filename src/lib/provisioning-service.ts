@@ -111,6 +111,11 @@ export async function runProvisioningStep(jobId: string): Promise<{ done: boolea
     include: { student: true },
     orderBy: { createdAt: "asc" },
   })
+  console.log(`[provision] Site PENDING trouvé:`, site ? `${site.subdomain}.${site.domain}` : "AUCUN")
+  if (!site) {
+    const allSitesDebug = await prisma.site.findMany({ where: { provisioningJobId: jobId }, select: { subdomain: true, status: true } })
+    console.log(`[provision] Sites du job:`, JSON.stringify(allSitesDebug))
+  }
 
   if (!site) {
     const allSites = await prisma.site.findMany({ where: { provisioningJobId: jobId } })
