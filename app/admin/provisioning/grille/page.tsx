@@ -68,8 +68,8 @@ export default function AdminGrillePage() {
     setClasses(data.classes ?? [])
   }, [token, router])
 
-  const loadSites = useCallback(async (cpanelUser: string) => {
-    setLoading(true)
+  const loadSites = useCallback(async (cpanelUser: string, showLoader = false) => {
+    if (showLoader) setLoading(true)
     const res = await fetch(`/api/provisioning/sites?cpanelUser=${cpanelUser}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -77,14 +77,14 @@ export default function AdminGrillePage() {
       const data = await res.json()
       setSites(data.sites ?? [])
     }
-    setLoading(false)
+    if (showLoader) setLoading(false)
   }, [token])
 
   useEffect(() => { loadClasses() }, [loadClasses])
 
   useEffect(() => {
     if (!selectedClass?.cpanelUser) return
-    loadSites(selectedClass.cpanelUser)
+    loadSites(selectedClass.cpanelUser, true)
     const interval = setInterval(() => loadSites(selectedClass.cpanelUser!), 5000)
     return () => clearInterval(interval)
   }, [selectedClass, loadSites])
