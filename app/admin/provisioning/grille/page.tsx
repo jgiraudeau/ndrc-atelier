@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft, RefreshCw, Globe, ShoppingCart, Copy,
-  CheckCircle, XCircle, Clock, AlertCircle, Layers
+  CheckCircle, XCircle, Clock, AlertCircle, Layers,
+  Download, ExternalLink, Eye, EyeOff
 } from "lucide-react"
 import Link from "next/link"
 
@@ -57,7 +58,9 @@ export default function AdminGrillePage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [sourceModel, setSourceModel] = useState<string>("")
   const [cloning, setCloning] = useState(false)
-  const [message, setMessage] = useState("")
+  const [installing, setInstalling] = useState(false)
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [revealedPass, setRevealedPass] = useState<Set<string>>(new Set())
 
   const token = typeof window !== "undefined" ? localStorage.getItem("ndrc_token") : null
 
@@ -104,12 +107,46 @@ export default function AdminGrillePage() {
 
   const selectAll = () => setSelected(new Set(studentSites.map(s => s.subdomain)))
   const selectNone = () => setSelected(new Set())
-  const selectEmpty = () => setSelected(new Set(studentSites.filter(s => s.status === "PENDING" || s.status === "ERROR").map(s => s.subdomain)))
+  const selectEmpty = () => setSelected(new Set(
+    studentSites.filter(s => s.status === "PENDING" || s.status === "ERROR").map(s => s.subdomain)
+  ))
+
+  const togglePass = (subdomain: string) => {
+    setRevealedPass(prev => {
+      const next = new Set(prev)
+      if (next.has(subdomain)) next.delete(subdomain)
+      else next.add(subdomain)
+      return next
+    })
+  }
+
+  const handleInstall = async () => {
+    if (selected.size === 0 || !selectedClass?.cpanelUser) return
+    setInstalling(true)
+    setMessage(null)
+    const res = await fetch("/api/provisioning/install", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        subdomains: Array.from(selected),
+        cpanelUser: selectedClass.cpanelUser,
+        siteType: activeTab,
+      }),
+    })
+    const data = await res.json()
+    if (data.started || data.done) {
+      setMessage({ type: "success", text: `Installation lancée pour ${selected.size} site(s) — les statuts se mettent à jour automatiquement.` })
+      setSelected(new Set())
+    } else {
+      setMessage({ type: "error", text: `Erreur : ${data.error ?? "inconnue"}` })
+    }
+    setInstalling(false)
+  }
 
   const handleClone = async () => {
     if (!sourceModel || selected.size === 0 || !selectedClass?.cpanelUser) return
     setCloning(true)
-    setMessage("")
+    setMessage(null)
     const res = await fetch("/api/provisioning/clone", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -121,13 +158,18 @@ export default function AdminGrillePage() {
     })
     const data = await res.json()
     if (data.started || data.done) {
-      setMessage(`Clonage lancé pour ${selected.size} sites — progression en cours...`)
+      setMessage({ type: "success", text: `Clonage lancé pour ${selected.size} site(s) — progression en cours...` })
       setSelected(new Set())
     } else {
-      setMessage(`Erreur : ${data.error ?? "inconnue"}`)
+      setMessage({ type: "error", text: `Erreur : ${data.error ?? "inconnue"}` })
     }
     setCloning(false)
   }
+
+  const cpanelDomain = sites[0]?.domain ?? ""
+  const cpanelUrl = selectedClass?.cpanelUser && cpanelDomain
+    ? `https://${cpanelDomain}:2083`
+    : null
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -144,11 +186,23 @@ export default function AdminGrillePage() {
             <p className="text-xs text-slate-400">Installation et clonage par sous-domaine</p>
           </div>
         </div>
-        {selectedClass && (
-          <button onClick={() => loadSites(selectedClass.cpanelUser!)} className="ml-auto text-slate-400 hover:text-white">
-            <RefreshCw size={16} />
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-3">
+          {cpanelUrl && (
+            <a
+              href={cpanelUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded-lg text-xs font-bold text-white transition-colors"
+            >
+              <ExternalLink size={12} /> cPanel
+            </a>
+          )}
+          {selectedClass && (
+            <button onClick={() => loadSites(selectedClass.cpanelUser!, true)} className="text-slate-400 hover:text-white">
+              <RefreshCw size={16} />
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="max-w-5xl mx-auto p-6 space-y-5">
@@ -164,6 +218,7 @@ export default function AdminGrillePage() {
               setSelectedClass(cls)
               setSites([])
               setSelected(new Set())
+              setMessage(null)
             }}
           >
             <option value="">— Sélectionner une classe —</option>
@@ -222,7 +277,7 @@ export default function AdminGrillePage() {
                     <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide flex items-center gap-2">
                       <Copy size={14} className="text-slate-400" /> Sites modèles
                     </h2>
-                    <span className="text-xs text-slate-400">À installer manuellement via cPanel</span>
+                    <span className="text-xs text-slate-400">Cliquez pour sélectionner comme source de clonage</span>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {modelSites.map(site => (
@@ -241,20 +296,37 @@ export default function AdminGrillePage() {
                           </div>
                         )}
                         <div className="font-mono font-bold text-slate-800 text-sm">{site.subdomain}</div>
-                        <div className="text-[10px] text-slate-400 truncate">{site.domain}</div>
-                        <div className={`mt-2 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_COLOR[site.status]}`}>
+                        <div className={`mt-1 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_COLOR[site.status]}`}>
                           {STATUS_ICON[site.status]} {site.status}
                         </div>
-                        {site.status === "ACTIVE" && site.adminUrl && (
-                          <a
-                            href={site.adminUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            className="mt-1 block text-[10px] text-blue-500 hover:underline truncate"
-                          >
-                            {site.adminUrl}
-                          </a>
+                        {site.status === "ACTIVE" && (
+                          <div className="mt-2 flex flex-col gap-1" onClick={e => e.stopPropagation()}>
+                            {site.url && (
+                              <a href={site.url} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-[10px] text-blue-500 hover:underline truncate">
+                                <Globe size={9} /> {site.url}
+                              </a>
+                            )}
+                            {site.adminUrl && (
+                              <a href={site.adminUrl} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-[10px] text-slate-600 hover:underline truncate">
+                                <ExternalLink size={9} /> Admin
+                              </a>
+                            )}
+                            {site.adminUser && (
+                              <div className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                                {site.adminUser}
+                                {site.adminPass && (
+                                  <span className="ml-1">
+                                    {revealedPass.has(site.subdomain) ? site.adminPass : "••••••••"}
+                                    <button onClick={() => togglePass(site.subdomain)} className="ml-1 text-slate-300 hover:text-slate-500">
+                                      {revealedPass.has(site.subdomain) ? <EyeOff size={8} /> : <Eye size={8} />}
+                                    </button>
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     ))}
@@ -299,18 +371,50 @@ export default function AdminGrillePage() {
                             {site.student.firstName} {site.student.lastName}
                           </div>
                         )}
+                        {site.status === "ACTIVE" && (
+                          <div className="mt-1 flex flex-col gap-0.5" onClick={e => e.stopPropagation()}>
+                            {site.url && (
+                              <a href={site.url} target="_blank" rel="noopener noreferrer"
+                                className="text-[8px] text-blue-500 hover:underline flex items-center gap-0.5">
+                                <Globe size={7} /> Site
+                              </a>
+                            )}
+                            {site.adminUrl && (
+                              <a href={site.adminUrl} target="_blank" rel="noopener noreferrer"
+                                className="text-[8px] text-slate-600 hover:underline flex items-center gap-0.5">
+                                <ExternalLink size={7} /> Admin
+                              </a>
+                            )}
+                            {site.adminUser && (
+                              <div className="text-[8px] text-slate-400 font-mono truncate">
+                                {site.adminUser}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Actions */}
+                {/* Barre d'actions */}
                 {selected.size > 0 && (
-                  <div className="bg-slate-800 rounded-xl p-4 flex items-center gap-4">
-                    <div className="text-white text-sm font-bold flex-1">
-                      {selected.size} site(s) sélectionné(s)
+                  <div className="bg-slate-800 rounded-xl p-4 space-y-3">
+                    <div className="text-white text-sm font-bold">
+                      {selected.size} site(s) sélectionné(s) — {activeTab === "WORDPRESS" ? "WordPress" : "PrestaShop"}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={handleInstall}
+                        disabled={installing || cloning}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg font-bold text-sm hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={14} />
+                        {installing ? "Installation..." : `Installer sur ${selected.size} site(s)`}
+                      </button>
+
+                      <div className="text-slate-400 text-xs font-bold">ou cloner depuis :</div>
+
                       <select
                         value={sourceModel}
                         onChange={e => setSourceModel(e.target.value)}
@@ -323,19 +427,23 @@ export default function AdminGrillePage() {
                       </select>
                       <button
                         onClick={handleClone}
-                        disabled={!sourceModel || cloning}
+                        disabled={!sourceModel || cloning || installing}
                         className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg font-bold text-sm hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       >
                         <Copy size={14} />
-                        {cloning ? "Clonage..." : `Cloner vers ${selected.size} sites`}
+                        {cloning ? "Clonage..." : `Cloner`}
                       </button>
                     </div>
                   </div>
                 )}
 
                 {message && (
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-green-700 text-sm">
-                    {message}
+                  <div className={`rounded-xl p-3 text-sm ${
+                    message.type === "success"
+                      ? "bg-green-50 border border-green-200 text-green-700"
+                      : "bg-red-50 border border-red-200 text-red-700"
+                  }`}>
+                    {message.text}
                   </div>
                 )}
               </>
