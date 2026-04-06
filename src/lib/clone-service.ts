@@ -25,7 +25,7 @@ function extractSoftError(data: unknown): string | null {
   return null
 }
 
-function extractInstallations(payload: unknown): Record<string, { softurl?: string; domain?: string }> {
+function extractInstallations(payload: unknown): Record<string, { softurl?: string; domain?: string; adminurl?: string }> {
   const root = payload as Record<string, unknown> | null
   if (!root) return {}
   const dataNode = root.data as Record<string, unknown> | undefined
@@ -33,12 +33,12 @@ function extractInstallations(payload: unknown): Record<string, { softurl?: stri
   const container = candidate as Record<string, unknown> | undefined
   if (!container) return {}
 
-  const out: Record<string, { softurl?: string; domain?: string }> = {}
+  const out: Record<string, { softurl?: string; domain?: string; adminurl?: string }> = {}
   for (const [key, value] of Object.entries(container)) {
     if (typeof value === "object" && value !== null) {
       const v = value as Record<string, unknown>
       if (typeof v.softurl === "string" || typeof v.domain === "string") {
-        out[key] = { softurl: v.softurl as string, domain: v.domain as string }
+        out[key] = { softurl: v.softurl as string, domain: v.domain as string, adminurl: v.adminurl as string | undefined }
         continue
       }
       // grouped format
@@ -46,7 +46,7 @@ function extractInstallations(payload: unknown): Record<string, { softurl?: stri
         const nv = nestedValue as Record<string, unknown>
         if (typeof nv?.softurl === "string" || typeof nv?.domain === "string") {
           const compositeId = /^\d+$/.test(key) && /^\d+$/.test(nestedId) ? `${key}_${nestedId}` : nestedId
-          out[compositeId] = { softurl: nv.softurl as string, domain: nv.domain as string }
+          out[compositeId] = { softurl: nv.softurl as string, domain: nv.domain as string, adminurl: nv.adminurl as string | undefined }
         }
       }
     }
@@ -210,9 +210,31 @@ export async function runCloneJob(params: {
       }
 
       const siteUrl = `https://${targetUrl}`
+
+      // Récupérer l'adminUrl réelle depuis Softaculous (ex: /adminXXXXXX pour PS, /wp-admin pour WP)
+      let adminUrl: string | null = null
+      try {
+        const refreshRes = await fetch(`${baseUrl}/frontend/jupiter/softaculous/index.live.php?act=installations&api=json`, {
+          headers: { Cookie: cookie },
+        })
+        const refreshData = parseMaybeJson(await refreshRes.text())
+        const refreshedInstalls = extractInstallations(refreshData)
+        const targetClean = targetUrl.toLowerCase()
+        for (const install of Object.values(refreshedInstalls)) {
+          const installHost = (install.softurl ?? install.domain ?? "").toLowerCase()
+            .replace(/^https?:\/\//, "").replace(/\/.*$/, "")
+          if (installHost === targetClean) {
+            if (install.adminurl) {
+              adminUrl = install.adminurl.startsWith("http") ? install.adminurl : `${siteUrl}/${install.adminurl.replace(/^\//, "")}`
+            }
+            break
+          }
+        }
+      } catch { /* adminUrl restera null */ }
+
       await prisma.site.updateMany({
         where: { subdomain: targetSubdomain, domain, cpanelUser },
-        data: { status: SiteStatus.ACTIVE, url: siteUrl, adminUrl: `${siteUrl}/wp-admin` },
+        data: { status: SiteStatus.ACTIVE, url: siteUrl, adminUrl },
       })
       console.log(`[clone]   ✓ ${targetUrl} cloné`)
 

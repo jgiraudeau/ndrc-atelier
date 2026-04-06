@@ -133,7 +133,15 @@ export async function installApp(
     if (!res.ok) return { success: false, error: `Softaculous HTTP ${res.status}` }
 
     const siteUrl = `https://${options.targetDomain}`
-    const adminUrl = app === "wordpress" ? `${siteUrl}/wp-admin` : `${siteUrl}/admin`
+    // WP : /wp-admin toujours fixe. PS : /adminXXXXXX aléatoire, la réponse Softaculous contient l'URL
+    let adminUrl = app === "wordpress" ? `${siteUrl}/wp-admin` : null
+    if (app === "prestashop" && parsed) {
+      const data = parsed.data as Record<string, unknown> | undefined
+      const softAdminUrl = data?.admin_url ?? parsed.admin_url
+      if (typeof softAdminUrl === "string" && softAdminUrl) {
+        adminUrl = softAdminUrl.startsWith("http") ? softAdminUrl : `${siteUrl}/${softAdminUrl.replace(/^\//, "")}`
+      }
+    }
 
     return {
       success: true,
