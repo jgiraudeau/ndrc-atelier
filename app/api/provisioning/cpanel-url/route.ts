@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth, apiError } from "@/src/lib/api-helpers"
 import { prisma } from "@/src/lib/prisma"
-import { getCPanelSessionData } from "@/src/lib/whm-service"
+import { getCPanelLoginURL } from "@/src/lib/whm-service"
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request, ["TEACHER", "ADMIN"])
@@ -25,8 +25,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const session = await getCPanelSessionData(whmConfig, cpanelUser)
-    return NextResponse.json({ url: session.url })
+    const url = await getCPanelLoginURL(whmConfig, cpanelUser)
+    if (!url) return apiError("Impossible de créer la session cPanel")
+    return NextResponse.json({ url })
   } catch (err: unknown) {
     return apiError(err instanceof Error ? err.message : "Impossible de créer la session cPanel")
   }
