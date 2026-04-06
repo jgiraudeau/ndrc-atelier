@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Zap, ArrowLeft, Play, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw, Trash2 } from "lucide-react"
+import { Zap, ArrowLeft, Play, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw, Trash2, Layers, Globe, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 
 interface ProvisioningJob {
   id: string
   siteType: "WORDPRESS" | "PRESTASHOP"
   status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "PARTIAL"
+  log: string[]
   createdAt: string
   updatedAt: string
   class: { name: string; code: string }
@@ -35,6 +36,7 @@ export default function AdminProvisioningPage() {
   const [showForm, setShowForm] = useState(false)
   const [creating, setCreating] = useState(false)
   const [running, setRunning] = useState<string | null>(null)
+  const [expandedJob, setExpandedJob] = useState<string | null>(null)
   const [form, setForm] = useState({ classId: "", siteType: "WORDPRESS", whmConfigId: "" })
   const [error, setError] = useState("")
 
@@ -126,6 +128,32 @@ export default function AdminProvisioningPage() {
       </header>
 
       <div className="max-w-3xl mx-auto p-6 space-y-4">
+
+        {/* Cartes de navigation */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-blue-50 rounded-xl p-4 flex items-center gap-3">
+            <Globe size={24} className="text-blue-500" />
+            <div>
+              <div className="font-bold text-blue-800 text-sm">WordPress</div>
+              <div className="text-xs text-blue-600">Site vitrine / blog</div>
+            </div>
+          </div>
+          <div className="bg-orange-50 rounded-xl p-4 flex items-center gap-3">
+            <ShoppingCart size={24} className="text-orange-500" />
+            <div>
+              <div className="font-bold text-orange-800 text-sm">PrestaShop</div>
+              <div className="text-xs text-orange-600">E-commerce</div>
+            </div>
+          </div>
+          <Link href="/admin/provisioning/grille" className="bg-slate-100 rounded-xl p-4 flex items-center gap-3 hover:bg-slate-200 transition-colors">
+            <Layers size={24} className="text-slate-600" />
+            <div>
+              <div className="font-bold text-slate-800 text-sm">Grille des sites</div>
+              <div className="text-xs text-slate-500">Installer &amp; cloner</div>
+            </div>
+          </Link>
+        </div>
+
         {configs.length === 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm flex items-center gap-2">
             <AlertCircle size={16} />
@@ -275,7 +303,25 @@ export default function AdminProvisioningPage() {
                         <Trash2 size={14} />
                       </button>
                     )}
+                    {job.log?.length > 0 && (
+                      <button
+                        onClick={() => setExpandedJob(expandedJob === job.id ? null : job.id)}
+                        className="text-xs text-slate-400 hover:text-slate-600 underline"
+                      >
+                        {expandedJob === job.id ? "Masquer" : "Logs"}
+                      </button>
+                    )}
                   </div>
+
+                  {expandedJob === job.id && job.log?.length > 0 && (
+                    <div className="border-t border-slate-100 bg-slate-900 p-3 mt-3 -mx-4 -mb-4 rounded-b-xl max-h-48 overflow-y-auto">
+                      {job.log.map((line, i) => (
+                        <p key={i} className={`text-xs font-mono ${line.includes("✓") ? "text-green-400" : line.includes("✗") || line.includes("ERREUR") ? "text-red-400" : "text-slate-300"}`}>
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })}
