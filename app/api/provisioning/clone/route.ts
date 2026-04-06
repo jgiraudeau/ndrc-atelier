@@ -10,18 +10,25 @@ import { waitUntil } from "@vercel/functions"
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
-  const railwayUrl = process.env.RAILWAY_PROVISIONING_URL
   const railwaySecret = process.env.RAILWAY_PROVISIONING_SECRET
+  const railwayUrl = process.env.RAILWAY_PROVISIONING_URL
 
-  // Sur Railway : vérifier le secret en premier (pas de JWT dans ces requêtes)
-  if (!railwayUrl && railwaySecret) {
-    const incoming = request.headers.get("x-provisioning-secret") ?? ""
-    if (incoming !== railwaySecret) return apiError("Non autorisé", 401)
-  } else {
-    // Sur Vercel : vérifier le JWT
-    const auth = await requireAuth(request, ["TEACHER", "ADMIN"])
-    if (auth instanceof NextResponse) return auth
+  // Appel interne Vercel → Railway : authentifié par secret, pas de JWT
+  const incomingSecret = request.headers.get("x-provisioning-secret")
+  if (railwaySecret && incomingSecret === railwaySecret) {
+    const body = await request.json() as {
+      sourceSubdomain: string
+      targetSubdomains: string[]
+      cpanelUser: string
+    }
+    const { runCloneJob } = await import("@/src/lib/clone-service")
+    await runCloneJob(body)
+    return NextResponse.json({ done: true })
   }
+
+  // Appel navigateur → Vercel : vérification JWT
+  const auth = await requireAuth(request, ["TEACHER", "ADMIN"])
+  if (auth instanceof NextResponse) return auth
 
   const body = await request.json() as {
     sourceSubdomain: string
@@ -34,7 +41,7 @@ export async function POST(request: NextRequest) {
     return apiError("sourceSubdomain, targetSubdomains et cpanelUser sont requis")
   }
 
-  // Sur Vercel : déléguer à Railway
+  // Sur Vercel : déléguer à Railway (fire-and-forget)
   if (railwayUrl && railwaySecret) {
     waitUntil(
       fetch(`${railwayUrl}/api/provisioning/clone`, {
@@ -49,8 +56,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ started: true })
   }
 
+  // Sans Railway : exécution directe (dev local)
   const { runCloneJob } = await import("@/src/lib/clone-service")
   await runCloneJob({ sourceSubdomain, targetSubdomains, cpanelUser })
-
   return NextResponse.json({ done: true })
 }
