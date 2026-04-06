@@ -13,7 +13,6 @@ import {
 } from "@/src/lib/api-client";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
 import { cn } from "@/lib/utils";
-import { jsPDF } from "jspdf";
 
 type Tab = "generate" | "list";
 
@@ -379,27 +378,38 @@ export default function TeacherMissionsPage() {
 }
 
 function downloadMissionPdf(markdown: string, title: string) {
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 297, 'F');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(30, 41, 59);
-    doc.text(title || "Mission NDRC", 20, 20);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Généré le ${new Date().toLocaleDateString("fr-FR")}`, 20, 28);
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.5);
-    doc.line(20, 32, 190, 32);
-    const plainText = markdown.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/^#{1,3} /gm, '').replace(/^> /gm, '');
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(30, 41, 59);
-    const lines = doc.splitTextToSize(plainText, 170);
-    doc.text(lines, 20, 42);
-    doc.save(`Mission_NDRC_${new Date().toISOString().slice(0, 10)}.pdf`);
+    const html = formatMarkdown(markdown);
+    const date = new Date().toLocaleDateString("fr-FR");
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<title>${title || "Mission NDRC"}</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 12pt; margin: 2cm; color: #1e293b; }
+  h1 { font-size: 18pt; margin-bottom: 4px; }
+  .meta { color: #64748b; font-size: 10pt; margin-bottom: 16px; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin-bottom: 16px; }
+  h2 { font-size: 14pt; margin-top: 20px; }
+  h3 { font-size: 12pt; margin-top: 14px; }
+  blockquote { border-left: 4px solid #a78bfa; padding-left: 12px; color: #475569; font-style: italic; margin: 12px 0; }
+  ul { margin-left: 20px; }
+  li { margin-bottom: 6px; }
+  @media print { body { margin: 1.5cm; } }
+</style>
+</head>
+<body>
+<h1>${title || "Mission NDRC"}</h1>
+<div class="meta">Généré le ${date}</div>
+<hr/>
+${html}
+</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
 }
 
 function downloadMissionWord(markdown: string, title: string) {
