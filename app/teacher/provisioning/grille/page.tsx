@@ -161,23 +161,29 @@ export default function GrillePage() {
         {/* Sélection de la classe */}
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Classe / Compte cPanel</label>
-          <select
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            value={selectedClass?.id ?? ""}
-            onChange={e => {
-              const cls = classes.find(c => c.id === e.target.value) ?? null
-              setSelectedClass(cls)
-              setSites([])
-              setSelected(new Set())
-            }}
-          >
-            <option value="">— Sélectionner une classe —</option>
-            {classes.map(c => (
-              <option key={c.id} value={c.id} disabled={!c.cpanelUser}>
-                {c.name} {c.cpanelUser ? `(${c.cpanelUser})` : "⚠ pas de compte cPanel"}
-              </option>
-            ))}
-          </select>
+          {classes.length === 0 ? (
+            <div className="text-sm text-amber-600 flex items-center gap-2 bg-amber-50 rounded-lg px-3 py-2">
+              <AlertCircle size={14} /> Aucune classe assignée à votre compte. Contactez l&apos;administrateur.
+            </div>
+          ) : (
+            <select
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              value={selectedClass?.id ?? ""}
+              onChange={e => {
+                const cls = classes.find(c => c.id === e.target.value) ?? null
+                setSelectedClass(cls)
+                setSites([])
+                setSelected(new Set())
+              }}
+            >
+              <option value="">— Sélectionner une classe —</option>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {c.cpanelUser ? `(${c.cpanelUser})` : "⚠ pas de compte cPanel"}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {selectedClass && !selectedClass.cpanelUser && (
