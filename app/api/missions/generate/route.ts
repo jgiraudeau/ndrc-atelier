@@ -5,6 +5,28 @@ import { GoogleGenAI } from "@google/genai";
 import fs from "fs";
 import path from "path";
 
+function getGenAI(): GoogleGenAI {
+  const b64 = process.env.GOOGLE_CREDENTIALS_BASE64
+  const project = process.env.GOOGLE_CLOUD_PROJECT
+
+  if (b64 && project) {
+    // Vertex AI — utilise les crédits Google Cloud
+    const json = Buffer.from(b64, "base64").toString("utf-8")
+    const credentials = JSON.parse(json)
+    return new GoogleGenAI({
+      vertexai: true,
+      project,
+      location: process.env.GOOGLE_CLOUD_LOCATION ?? "europe-west1",
+      googleAuthOptions: { credentials },
+    })
+  }
+
+  // Fallback Gemini API classique
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) throw new Error("La clé d'API Gemini n'est pas configurée côté serveur.")
+  return new GoogleGenAI({ apiKey })
+}
+
 export async function POST(request: NextRequest) {
     try {
         const auth = await requireAuth(request, ["STUDENT", "TEACHER"]);
@@ -16,11 +38,12 @@ export async function POST(request: NextRequest) {
             return apiError("Il faut fournir au moins un ID de compétence.");
         }
 
-        if (!process.env.GEMINI_API_KEY) {
-            return apiError("La clé d'API Gemini n'est pas configurée côté serveur.", 500);
+        let ai: GoogleGenAI;
+        try {
+            ai = getGenAI();
+        } catch (err: unknown) {
+            return apiError(err instanceof Error ? err.message : "IA non configurée", 500);
         }
-
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
         // Lookup competency details
         const compsToPractice = competencyIds
