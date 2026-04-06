@@ -311,33 +311,31 @@ export default function GrillePage() {
                           {STATUS_ICON[site.status]} {site.status}
                         </div>
                         {site.status === "ACTIVE" && (
-                          <div className="mt-2 flex flex-col gap-1">
+                          <div className="mt-2 flex gap-1" onClick={e => e.stopPropagation()}>
                             {site.url && (
                               <a href={site.url} target="_blank" rel="noopener noreferrer"
-                                onClick={e => e.stopPropagation()}
-                                className="flex items-center gap-1 text-[10px] text-blue-500 hover:underline truncate">
-                                <Globe size={9} /> {site.url}
+                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold transition-colors">
+                                <Globe size={10} /> Site
                               </a>
                             )}
                             {site.adminUrl && (
                               <a href={site.adminUrl} target="_blank" rel="noopener noreferrer"
-                                onClick={e => e.stopPropagation()}
-                                className="flex items-center gap-1 text-[10px] text-indigo-500 hover:underline truncate">
-                                <ExternalLink size={9} /> Admin
+                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[10px] font-bold transition-colors">
+                                <ExternalLink size={10} /> Admin
                               </a>
                             )}
-                            {site.adminUser && (
-                              <div className="text-[9px] text-slate-400 mt-0.5" onClick={e => e.stopPropagation()}>
-                                <span className="font-mono">{site.adminUser}</span>
-                                {site.adminPass && (
-                                  <span className="ml-1 font-mono">
-                                    {revealedPass.has(site.subdomain) ? site.adminPass : "••••••••"}
-                                    <button onClick={() => togglePass(site.subdomain)} className="ml-1 text-slate-300 hover:text-slate-500">
-                                      {revealedPass.has(site.subdomain) ? <EyeOff size={8} /> : <Eye size={8} />}
-                                    </button>
-                                  </span>
-                                )}
-                              </div>
+                          </div>
+                        )}
+                        {site.status === "ACTIVE" && site.adminUser && (
+                          <div className="mt-1 text-[9px] text-slate-400 font-mono" onClick={e => e.stopPropagation()}>
+                            {site.adminUser}
+                            {site.adminPass && (
+                              <span className="ml-1">
+                                {revealedPass.has(site.subdomain) ? site.adminPass : "••••••"}
+                                <button onClick={() => togglePass(site.subdomain)} className="ml-1 text-slate-300 hover:text-slate-500 align-middle">
+                                  {revealedPass.has(site.subdomain) ? <EyeOff size={8} /> : <Eye size={8} />}
+                                </button>
+                              </span>
                             )}
                           </div>
                         )}
@@ -385,23 +383,18 @@ export default function GrillePage() {
                           </div>
                         )}
                         {site.status === "ACTIVE" && (
-                          <div className="mt-1 flex flex-col gap-0.5" onClick={e => e.stopPropagation()}>
+                          <div className="mt-1 flex gap-1" onClick={e => e.stopPropagation()}>
                             {site.url && (
                               <a href={site.url} target="_blank" rel="noopener noreferrer"
-                                className="text-[8px] text-blue-500 hover:underline truncate flex items-center gap-0.5">
-                                <Globe size={7} /> Site
+                                className="flex-1 flex items-center justify-center gap-0.5 px-1.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[8px] font-bold transition-colors">
+                                <Globe size={8} /> Site
                               </a>
                             )}
                             {site.adminUrl && (
                               <a href={site.adminUrl} target="_blank" rel="noopener noreferrer"
-                                className="text-[8px] text-indigo-500 hover:underline truncate flex items-center gap-0.5">
-                                <ExternalLink size={7} /> Admin
+                                className="flex-1 flex items-center justify-center gap-0.5 px-1.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[8px] font-bold transition-colors">
+                                <ExternalLink size={8} /> Admin
                               </a>
-                            )}
-                            {site.adminUser && (
-                              <div className="text-[8px] text-slate-400 font-mono truncate">
-                                {site.adminUser}
-                              </div>
                             )}
                           </div>
                         )}
