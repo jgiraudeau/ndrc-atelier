@@ -100,20 +100,19 @@ Génère uniquement le contenu de cet email.
 `;
 
         // 1. Chercher les PDFs pertinents dans knowledge/
-        // Structure : knowledge/wordpress/, knowledge/prestashop/, knowledge/seo/, knowledge/sujets/
         const knowledgeDir = path.join(process.cwd(), "knowledge");
         const coursePdfs: { filePath: string; filename: string }[] = [];
+        const referentielPdfs: { filePath: string; filename: string }[] = [];
         const sujetsPdfs: { filePath: string; filename: string }[] = [];
+        const contexteMds: { filePath: string; filename: string }[] = [];
 
         if (fs.existsSync(knowledgeDir)) {
-            // Dossiers de cours liés à la plateforme sélectionnée
+            // Tutoriels de cours liés à la plateforme sélectionnée
             const platformFolders: Record<string, string[]> = {
-                WORDPRESS: ["wordpress", "seo"],    // YoastSEO = plugin WordPress
+                WORDPRESS: ["wordpress", "seo"],
                 PRESTASHOP: ["prestashop"],
             };
-            const folders = platformFolders[platform] || [];
-
-            for (const folder of folders) {
+            for (const folder of platformFolders[platform] || []) {
                 const folderPath = path.join(knowledgeDir, folder);
                 if (fs.existsSync(folderPath)) {
                     for (const file of fs.readdirSync(folderPath)) {
@@ -124,8 +123,17 @@ Génère uniquement le contenu de cet email.
                 }
             }
 
-            // Dossier sujets d'examen : d'abord le sous-dossier de la plateforme, puis la racine
-            // Structure : knowledge/sujets/wordpress/, knowledge/sujets/prestashop/
+            // Référentiel officiel BTS NDRC E5 (commun à toutes les plateformes)
+            const referentielDir = path.join(knowledgeDir, "referentiel");
+            if (fs.existsSync(referentielDir)) {
+                for (const file of fs.readdirSync(referentielDir)) {
+                    if (file.endsWith(".pdf")) {
+                        referentielPdfs.push({ filePath: path.join(referentielDir, file), filename: file });
+                    }
+                }
+            }
+
+            // Sujets d'examen : plateforme spécifique + E5 général
             const sujetsBase = path.join(knowledgeDir, "sujets");
             if (fs.existsSync(sujetsBase)) {
                 // Sujets spécifiques à la plateforme
@@ -137,11 +145,30 @@ Génère uniquement le contenu de cet email.
                         }
                     }
                 }
-                // Sujets généraux (à la racine de sujets/)
+                // Sujets E5 généraux (knowledge/sujets/e5/)
+                const sujetsE5 = path.join(sujetsBase, "e5");
+                if (fs.existsSync(sujetsE5)) {
+                    for (const file of fs.readdirSync(sujetsE5)) {
+                        if (file.endsWith(".pdf")) {
+                            sujetsPdfs.push({ filePath: path.join(sujetsE5, file), filename: file });
+                        }
+                    }
+                }
+                // Sujets généraux à la racine de sujets/
                 for (const file of fs.readdirSync(sujetsBase)) {
                     const fullPath = path.join(sujetsBase, file);
                     if (file.endsWith(".pdf") && !fs.statSync(fullPath).isDirectory()) {
                         sujetsPdfs.push({ filePath: fullPath, filename: file });
+                    }
+                }
+            }
+
+            // Fiches contextes entreprises (Markdown)
+            const contextesDir = path.join(knowledgeDir, "contextes");
+            if (fs.existsSync(contextesDir)) {
+                for (const file of fs.readdirSync(contextesDir)) {
+                    if (file.endsWith(".md")) {
+                        contexteMds.push({ filePath: path.join(contextesDir, file), filename: file });
                     }
                 }
             }
@@ -150,17 +177,32 @@ Génère uniquement le contenu de cet email.
         // 2. Préparer les parties (parts) du message pour l'API Gemini
         const parts: any[] = [];
 
+        if (referentielPdfs.length > 0) {
+            parts.push({ text: "Voici le référentiel officiel BTS NDRC pour l'épreuve E5. Respecte impérativement les compétences et attendus officiels définis dans ce référentiel :\n" });
+            referentielPdfs.forEach(doc => {
+                const base64 = fs.readFileSync(doc.filePath).toString("base64");
+                parts.push({ inlineData: { data: base64, mimeType: "application/pdf" } });
+            });
+        }
+
+        if (contexteMds.length > 0) {
+            parts.push({ text: "\nVoici les fiches contextes entreprises disponibles. Si l'entreprise du contexte correspond à l'une d'elles, utilise ces informations pour rendre la mission plus précise et réaliste :\n" });
+            contexteMds.forEach(doc => {
+                const content = fs.readFileSync(doc.filePath, "utf-8");
+                parts.push({ text: `\n--- FICHE ENTREPRISE : ${doc.filename} ---\n${content}\n---\n` });
+            });
+        }
+
         if (coursePdfs.length > 0) {
-            parts.push({ text: "Voici les fiches de cours officielles (Knowledge Base) : " });
+            parts.push({ text: "\nVoici les fiches de cours officielles pour la plateforme utilisée. Les tâches demandées dans la mission doivent être faisables et correspondre à ce qui est enseigné dans ces fiches. Utilise leur vocabulaire :\n" });
             coursePdfs.forEach(doc => {
                 const base64 = fs.readFileSync(doc.filePath).toString("base64");
                 parts.push({ inlineData: { data: base64, mimeType: "application/pdf" } });
             });
-            parts.push({ text: "\nTu dois IMPÉRATIVEMENT t'assurer que les tâches demandées dans la mission sont faisables et correspondent à ce qui est enseigné dans ces fiches de cours. Inspire-toi du vocabulaire utilisé.\n" });
         }
 
         if (sujetsPdfs.length > 0) {
-            parts.push({ text: "\nVoici des exemples de sujets d'examen BTS NDRC (épreuves E5/E6). Inspire-toi de leur style, de leur niveau d'exigence et de leurs mises en situation pour rendre ta mission plus réaliste et conforme aux attentes de l'examen :\n" });
+            parts.push({ text: "\nVoici des exemples de sujets d'examen BTS NDRC E5. Inspire-toi de leur style, niveau d'exigence et mises en situation pour rendre ta mission réaliste et conforme aux attentes de l'examen :\n" });
             sujetsPdfs.forEach(doc => {
                 const base64 = fs.readFileSync(doc.filePath).toString("base64");
                 parts.push({ inlineData: { data: base64, mimeType: "application/pdf" } });

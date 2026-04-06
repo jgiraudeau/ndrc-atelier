@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest) {
 
   const site = await prisma.site.update({
     where: { id: siteId },
-    data: { studentId: studentId ?? null },
+    data: { studentId: studentId ?? undefined },
     include: { student: { select: { id: true, firstName: true, lastName: true, identifier: true } } },
   })
 
