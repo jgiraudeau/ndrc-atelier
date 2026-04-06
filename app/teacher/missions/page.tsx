@@ -306,6 +306,14 @@ export default function TeacherMissionsPage() {
                                                 className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors">
                                                 <Send size={14} /> Assigner
                                             </button>
+                                            <button onClick={() => downloadMissionPdf(mission.content, mission.title)}
+                                                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors">
+                                                <Download size={14} /> PDF
+                                            </button>
+                                            <button onClick={() => downloadMissionWord(mission.content, mission.title)}
+                                                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors">
+                                                <FileText size={14} /> Word
+                                            </button>
                                             {confirmDeleteId === mission.id ? (
                                                 <div className="flex gap-1">
                                                     <button onClick={() => handleDelete(mission.id)} className="px-4 py-2 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700">Confirmer</button>
@@ -368,6 +376,50 @@ export default function TeacherMissionsPage() {
             </div>
         </main>
     );
+}
+
+function downloadMissionPdf(markdown: string, title: string) {
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, 210, 297, 'F');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(30, 41, 59);
+    doc.text(title || "Mission NDRC", 20, 20);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Généré le ${new Date().toLocaleDateString("fr-FR")}`, 20, 28);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+    doc.line(20, 32, 190, 32);
+    const plainText = markdown.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/^#{1,3} /gm, '').replace(/^> /gm, '');
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(30, 41, 59);
+    const lines = doc.splitTextToSize(plainText, 170);
+    doc.text(lines, 20, 42);
+    doc.save(`Mission_NDRC_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
+function downloadMissionWord(markdown: string, title: string) {
+    const htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'><title>${title}</title>
+<style>body { font-family: Calibri, sans-serif; font-size: 12pt; margin: 2cm; }</style>
+</head><body>
+<h1>${title || "Mission NDRC"}</h1>
+<p style="color:#64748b; font-size:10pt;">Généré le ${new Date().toLocaleDateString("fr-FR")}</p>
+<hr/>${formatMarkdown(markdown)}
+</body></html>`;
+    const blob = new Blob([htmlContent], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Mission_NDRC_${new Date().toISOString().slice(0, 10)}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 function formatMarkdown(text: string) {
