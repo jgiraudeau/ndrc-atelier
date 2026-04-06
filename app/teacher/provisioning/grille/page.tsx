@@ -192,8 +192,15 @@ export default function GrillePage() {
     setCloning(false)
   }
 
-  const cpanelDomain = sites[0]?.domain ?? ""
-  const cpanelUrl = selectedClass?.cpanelUser && cpanelDomain ? `https://${cpanelDomain}:2083` : null
+  const openCpanel = async () => {
+    if (!selectedClass?.cpanelUser) return
+    const res = await fetch(`/api/provisioning/cpanel-url?cpanelUser=${selectedClass.cpanelUser}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await res.json()
+    if (data.url) window.open(data.url, "_blank")
+    else alert("Impossible d'ouvrir cPanel : " + (data.error ?? "erreur inconnue"))
+  }
 
   // Élèves déjà affectés sur cet onglet (pour éviter double affectation)
   const assignedStudentIds = new Set(studentSites.filter(s => s.student).map(s => s.student!.id))
@@ -214,11 +221,11 @@ export default function GrillePage() {
           </div>
         </div>
         <div className="ml-auto flex items-center gap-3">
-          {cpanelUrl && (
-            <a href={cpanelUrl} target="_blank" rel="noopener noreferrer"
+          {selectedClass?.cpanelUser && (
+            <button onClick={openCpanel}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 rounded-lg text-xs font-bold text-white transition-colors">
               <ExternalLink size={12} /> cPanel
-            </a>
+            </button>
           )}
           {selectedClass && filteredSites.some(s => !s.isModel && s.status === "ACTIVE") && (
             <button
