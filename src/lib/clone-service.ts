@@ -123,11 +123,19 @@ export async function runCloneJob(params: {
   const installations = extractInstallations(listData)
 
   // Chercher le source par subdomain
-  const sourceUrl = `${sourceSubdomain}.${domain}`
+  const sourceUrl = `${sourceSubdomain}.${domain}`.toLowerCase()
   let installId: string | null = null
+  console.log(`[clone] Recherche installId pour: ${sourceUrl}`)
+  console.log(`[clone] Installations disponibles:`, JSON.stringify(Object.entries(installations).map(([id, i]) => ({ id, url: i.softurl, domain: i.domain }))))
   for (const [id, install] of Object.entries(installations)) {
-    const installHost = (install.softurl ?? install.domain ?? "").replace(/^https?:\/\//, "").replace(/\/$/, "").toLowerCase()
-    if (installHost === sourceUrl.toLowerCase() || installHost === sourceSubdomain.toLowerCase()) {
+    const raw = (install.softurl ?? install.domain ?? "").toLowerCase()
+    const installHost = raw.replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "")
+    const sourceClean = sourceUrl.replace(/^www\./, "")
+    if (
+      installHost === sourceClean ||
+      installHost === sourceSubdomain.toLowerCase() ||
+      installHost.startsWith(sourceSubdomain.toLowerCase() + ".")
+    ) {
       installId = id
       break
     }
