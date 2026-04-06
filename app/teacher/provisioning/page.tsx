@@ -145,7 +145,7 @@ export default function TeacherProvisioningPage() {
             <Zap size={18} />
           </div>
           <div>
-            <h1 className="text-lg font-black">Créer les sites élèves</h1>
+            <h1 className="text-lg font-black">Création des sites élèves</h1>
             <p className="text-xs text-indigo-300">1 WordPress + 1 PrestaShop par élève</p>
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function TeacherProvisioningPage() {
             disabled={!hasActiveConfig || classes.length === 0}
             className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg font-bold text-sm hover:bg-amber-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Zap size={16} /> Lancer un provisioning
+            <Zap size={16} /> Créer les sites
           </button>
         </div>
 
@@ -271,7 +271,7 @@ export default function TeacherProvisioningPage() {
           <div className="text-center py-12 text-slate-400">
             <Zap size={48} className="mx-auto mb-3 opacity-30" />
             <p className="font-bold">Aucun job lancé</p>
-            <p className="text-sm mt-1">Cliquez sur &quot;Lancer un provisioning&quot; pour créer les sites de votre classe</p>
+            <p className="text-sm mt-1">Cliquez sur &quot;Créer les sites&quot; pour créer les sous-domaines de votre classe</p>
           </div>
         ) : (
           <div className="space-y-3">

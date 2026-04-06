@@ -133,8 +133,8 @@ export default function AdminDashboardPage() {
                             <Zap size={18} />
                         </div>
                         <div>
-                            <div className="font-bold text-slate-800 text-sm">Provisioning</div>
-                            <div className="text-xs text-slate-400">Créer les sites WP/PS</div>
+                            <div className="font-bold text-slate-800 text-sm">Création des sites</div>
+                            <div className="text-xs text-slate-400">Sous-domaines WP/PS</div>
                         </div>
                     </Link>
                     <Link href="/admin/provisioning/grille" className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">

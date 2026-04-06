@@ -310,7 +310,7 @@ export default function GrillePage() {
 
             {!loading && filteredSites.length === 0 && (
               <div className="text-center py-8 text-slate-400">
-                Aucun sous-domaine trouvé. Lancez d&apos;abord un job de provisioning.
+                Aucun sous-domaine trouvé. Lancez d&apos;abord une création de sites.
               </div>
             )}
 
