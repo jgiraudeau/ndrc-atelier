@@ -10,12 +10,22 @@ import { waitUntil } from "@vercel/functions"
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request, ["TEACHER", "ADMIN"])
-  if (auth instanceof NextResponse) return auth
+  const railwayUrl = process.env.RAILWAY_PROVISIONING_URL
+  const railwaySecret = process.env.RAILWAY_PROVISIONING_SECRET
+
+  // Sur Railway : vérifier le secret en premier (pas de JWT dans ces requêtes)
+  if (!railwayUrl && railwaySecret) {
+    const incoming = request.headers.get("x-provisioning-secret") ?? ""
+    if (incoming !== railwaySecret) return apiError("Non autorisé", 401)
+  } else {
+    // Sur Vercel : vérifier le JWT
+    const auth = await requireAuth(request, ["TEACHER", "ADMIN"])
+    if (auth instanceof NextResponse) return auth
+  }
 
   const body = await request.json() as {
-    sourceSubdomain: string   // ex: "modelewp1"
-    targetSubdomains: string[] // ex: ["wp1", "wp2", "wp3"]
+    sourceSubdomain: string
+    targetSubdomains: string[]
     cpanelUser: string
   }
 
@@ -23,9 +33,6 @@ export async function POST(request: NextRequest) {
   if (!sourceSubdomain || !targetSubdomains?.length || !cpanelUser) {
     return apiError("sourceSubdomain, targetSubdomains et cpanelUser sont requis")
   }
-
-  const railwayUrl = process.env.RAILWAY_PROVISIONING_URL
-  const railwaySecret = process.env.RAILWAY_PROVISIONING_SECRET
 
   // Sur Vercel : déléguer à Railway
   if (railwayUrl && railwaySecret) {
@@ -40,13 +47,6 @@ export async function POST(request: NextRequest) {
       })
     )
     return NextResponse.json({ started: true })
-  }
-
-  // Sur Railway : exécution réelle
-  const secret = process.env.RAILWAY_PROVISIONING_SECRET
-  if (secret) {
-    const incoming = request.headers.get("x-provisioning-secret") ?? ""
-    if (incoming !== secret) return apiError("Non autorisé", 401)
   }
 
   const { runCloneJob } = await import("@/src/lib/clone-service")
