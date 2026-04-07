@@ -47,14 +47,14 @@ export default function StudentSitesPage() {
   const psSite = sites.find((s) => s.type === "PRESTASHOP")
 
   if (loading) return (
-    <main className="min-h-screen bg-slate-900 flex items-center justify-center">
+    <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 flex items-center justify-center">
       <div className="text-slate-400 animate-pulse">Chargement...</div>
     </main>
   )
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
-      <header className="px-6 py-4 flex items-center gap-4">
+    <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900">
+      <header className="sticky top-0 z-20 bg-slate-900/70 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center gap-4">
         <Link href="/student" className="text-indigo-300 hover:text-white transition-colors">
           <ArrowLeft size={20} />
         </Link>

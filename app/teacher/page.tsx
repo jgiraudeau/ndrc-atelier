@@ -198,7 +198,7 @@ export default function TeacherDashboard() {
     const activeStudents = filteredStudents.filter(s => s.acquiredCount > 0).length;
 
     if (loading) return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
                     <RefreshCw size={20} className="text-purple-400 animate-spin" />
@@ -209,7 +209,7 @@ export default function TeacherDashboard() {
     );
 
     return (
-        <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 font-sans pb-20">
+        <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 font-sans pb-20">
 
             {/* Header */}
             <header className="sticky top-0 z-20 bg-slate-900/80 backdrop-blur-md border-b border-white/5">

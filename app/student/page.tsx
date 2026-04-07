@@ -72,18 +72,18 @@ export default function StudentDashboard() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400"></div>
     </div>
   );
 
   if (errorMsg) return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 text-center">
-      <h1 className="text-xl font-bold text-slate-800 mb-2">Oups, une erreur 😕</h1>
-      <p className="text-red-500 font-medium mb-6">{errorMsg}</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 flex flex-col items-center justify-center p-4 text-center">
+      <h1 className="text-xl font-bold text-white mb-2">Oups, une erreur 😕</h1>
+      <p className="text-red-400 font-medium mb-6">{errorMsg}</p>
       <button
         onClick={() => { localStorage.removeItem("ndrc_token"); router.push("/student/login"); }}
-        className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition"
+        className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:from-indigo-500 hover:to-blue-500 transition-all"
       >
         Retour à la connexion
       </button>
@@ -93,29 +93,28 @@ export default function StudentDashboard() {
   if (!data) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 flex flex-col font-sans text-white">
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-10 pt-6 md:pt-10 max-w-7xl mx-auto w-full">
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900">
+            <h1 className="text-2xl md:text-3xl font-black text-white">
               Bonjour, {data.firstName} 👋
             </h1>
             <p className="text-slate-400 mt-1 font-medium text-sm">Prêt à valider de nouvelles compétences ?</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
+            <div className="flex items-center gap-3 bg-white/5 border border-white/8 px-4 py-2 rounded-full">
+              <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center font-bold text-xs">
                 {data.firstName[0]}{data.lastName[0]}
               </div>
-              <div className="text-xs font-bold text-slate-600 pr-2">
+              <div className="text-xs font-bold text-slate-300 pr-2">
                 {data.classCode}
               </div>
             </div>
-            <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg" title="Déconnexion">
+            <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5" title="Déconnexion">
               <LogOut size={18} />
             </button>
           </div>
@@ -128,16 +127,16 @@ export default function StudentDashboard() {
             {/* Progress Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Main Progress */}
-              <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-xl shadow-indigo-200 relative overflow-hidden flex flex-col justify-between min-h-[200px]">
+              <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-6 text-white shadow-xl shadow-indigo-900/50 relative overflow-hidden flex flex-col justify-between min-h-[200px]">
                 <div className="relative z-10">
-                  <h3 className="font-bold text-indigo-100 text-sm uppercase tracking-wider mb-1">Progression Globale</h3>
+                  <h3 className="font-bold text-indigo-200 text-sm uppercase tracking-wider mb-1">Progression Globale</h3>
                   <div className="text-5xl font-black">{data.progress.total}%</div>
                   <div className="mt-2 text-indigo-200 text-xs font-medium">
                     {data.progress.acquiredCount} / {data.progress.totalCount} compétences validées
                   </div>
                 </div>
-                <div className="absolute right-[-20px] top-[-20px] w-40 h-40 border-[20px] border-indigo-500 rounded-full opacity-30" />
-                <div className="absolute right-[-40px] bottom-[-40px] w-60 h-60 bg-indigo-500 rounded-full opacity-30 blur-2xl" />
+                <div className="absolute right-[-20px] top-[-20px] w-40 h-40 border-[20px] border-indigo-500/30 rounded-full opacity-40" />
+                <div className="absolute right-[-40px] bottom-[-40px] w-60 h-60 bg-indigo-500/20 rounded-full opacity-40 blur-2xl" />
 
                 <div className="relative z-10 mt-6 flex gap-3">
                   <Link href="/student/wordpress" className="flex-1 bg-white/10 hover:bg-white/20 backdrop-blur-sm py-2 px-3 rounded-xl text-xs font-bold text-center transition-colors">
@@ -150,7 +149,7 @@ export default function StudentDashboard() {
               </div>
 
               {/* Detailed Stats */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-center gap-6">
+              <div className="bg-white/5 border border-white/8 rounded-3xl p-6 flex flex-col justify-center gap-6">
                 <PlatformProgress
                   label="WordPress"
                   value={data.progress.wordpress}
@@ -168,32 +167,32 @@ export default function StudentDashboard() {
 
             {/* Recent Activity */}
             <section>
-              <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+              <h3 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
                 <Clock size={20} className="text-slate-400" /> Activité Récente
               </h3>
-              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="bg-white/5 border border-white/8 rounded-3xl overflow-hidden">
                 {data.recentActivity.length > 0 ? (
-                  <div className="divide-y divide-slate-50">
+                  <div className="divide-y divide-white/5">
                     {data.recentActivity.map((activity) => (
-                      <div key={activity.id} className="p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
-                        <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
+                      <div key={activity.id} className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center flex-shrink-0">
                           <CheckCircle2 size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-slate-700 text-sm truncate">{activity.label}</h4>
+                          <h4 className="font-bold text-slate-200 text-sm truncate">{activity.label}</h4>
                           <p className="text-xs text-slate-400 mt-0.5">
                             {new Date(activity.date).toLocaleDateString("fr-FR", { day: 'numeric', month: 'long' })} • {activity.platform}
                           </p>
                           {activity.teacherStatus !== null && activity.teacherStatus !== undefined && (
                             <div className="flex items-center gap-1.5 mt-1">
-                              <MessageSquare size={11} className="text-indigo-500" />
+                              <MessageSquare size={11} className="text-indigo-400" />
                               <span className={cn(
                                 "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                                activity.teacherStatus === 1 ? "bg-slate-200 text-slate-600" :
-                                activity.teacherStatus === 2 ? "bg-blue-100 text-blue-700" :
-                                activity.teacherStatus === 3 ? "bg-green-100 text-green-700" :
-                                activity.teacherStatus === 4 ? "bg-purple-100 text-purple-700" :
-                                "bg-red-100 text-red-700"
+                                activity.teacherStatus === 1 ? "bg-white/8 text-slate-400" :
+                                activity.teacherStatus === 2 ? "bg-blue-500/20 text-blue-400" :
+                                activity.teacherStatus === 3 ? "bg-emerald-500/20 text-emerald-400" :
+                                activity.teacherStatus === 4 ? "bg-purple-500/20 text-purple-400" :
+                                "bg-red-500/20 text-red-400"
                               )}>
                                 Prof : {activity.teacherStatus === 0 ? "Non validé" : activity.teacherStatus === 1 ? "Novice" : activity.teacherStatus === 2 ? "Apprenti" : activity.teacherStatus === 3 ? "Compétent" : "Expert"}
                               </span>
@@ -205,14 +204,14 @@ export default function StudentDashboard() {
                             </div>
                           )}
                         </div>
-                        <Link href={`/student/competency/${activity.id}`} className="p-2 text-slate-300 hover:text-indigo-600 transition-colors">
+                        <Link href={`/student/competency/${activity.id}`} className="p-2 text-slate-500 hover:text-indigo-400 transition-colors">
                           <ChevronRight size={20} />
                         </Link>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-slate-400 text-sm">
+                  <div className="p-8 text-center text-slate-500 text-sm">
                     Aucune activité récente. Commence par valider une compétence !
                   </div>
                 )}
@@ -224,80 +223,80 @@ export default function StudentDashboard() {
           <div className="space-y-8">
             {/* Notifications / Messages */}
             <section>
-              <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+              <h3 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
                 <MessageSquare size={20} className="text-slate-400" /> Messages Prof
               </h3>
               <div className="space-y-3">
                 {data.comments.length > 0 ? (
                   data.comments.map((comment) => (
-                    <div key={comment.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative">
+                    <div key={comment.id} className="bg-white/5 border border-white/8 p-5 rounded-3xl relative">
                       <div className="absolute top-5 right-5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                       <div className="flex items-center gap-2 mb-2">
                         <User size={14} className="text-slate-400" />
-                        <span className="text-xs font-bold text-slate-500 uppercase">{comment.author}</span>
-                        <span className="text-[10px] text-slate-300">• {new Date(comment.date).toLocaleDateString("fr-FR")}</span>
+                        <span className="text-xs font-bold text-slate-400 uppercase">{comment.author}</span>
+                        <span className="text-[10px] text-slate-600">• {new Date(comment.date).toLocaleDateString("fr-FR")}</span>
                       </div>
-                      <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                      <p className="text-sm text-slate-300 font-medium leading-relaxed">
                         &quot;{comment.text}&quot;
                       </p>
                     </div>
                   ))
                 ) : (
-                  <div className="bg-white p-6 rounded-3xl border border-dashed border-slate-200 text-center">
-                    <p className="text-sm text-slate-400">Aucun nouveau message.</p>
+                  <div className="bg-white/5 border border-dashed border-white/10 p-6 rounded-3xl text-center">
+                    <p className="text-sm text-slate-500">Aucun nouveau message.</p>
                   </div>
                 )}
               </div>
             </section>
 
             {/* Mes sites */}
-            <section className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-              <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+            <section className="bg-white/5 border border-white/8 rounded-3xl p-6">
+              <h3 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
                 <Globe size={20} className="text-slate-400" /> Mes Sites Accessibles
               </h3>
               <div className="space-y-3">
                 {data.wpUrl ? (
-                  <a href={data.wpUrl.startsWith("http") ? data.wpUrl : `https://${data.wpUrl}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-blue-600 text-white font-bold text-center py-3 rounded-xl shadow-md hover:bg-blue-700 transition-all text-sm">
+                  <a href={data.wpUrl.startsWith("http") ? data.wpUrl : `https://${data.wpUrl}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-center py-3 rounded-xl shadow-md hover:from-blue-500 hover:to-cyan-500 transition-all text-sm">
                     🚀 Ouvrir mon WordPress
                   </a>
                 ) : (
-                  <div className="w-full border-2 border-dashed border-slate-200 text-slate-400 font-bold text-center py-3 rounded-xl text-sm italic">
+                  <div className="w-full border-2 border-dashed border-white/10 text-slate-500 font-bold text-center py-3 rounded-xl text-sm italic">
                     Lien WordPress non configuré
                   </div>
                 )}
                 {data.prestaUrl ? (
-                  <a href={data.prestaUrl.startsWith("http") ? data.prestaUrl : `https://${data.prestaUrl}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-pink-600 text-white font-bold text-center py-3 rounded-xl shadow-md hover:bg-pink-700 transition-all text-sm">
+                  <a href={data.prestaUrl.startsWith("http") ? data.prestaUrl : `https://${data.prestaUrl}`} target="_blank" rel="noopener noreferrer" className="block w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold text-center py-3 rounded-xl shadow-md hover:from-pink-500 hover:to-rose-500 transition-all text-sm">
                     🛒 Ouvrir mon PrestaShop
                   </a>
                 ) : (
-                  <div className="w-full border-2 border-dashed border-slate-200 text-slate-400 font-bold text-center py-3 rounded-xl text-sm italic">
+                  <div className="w-full border-2 border-dashed border-white/10 text-slate-500 font-bold text-center py-3 rounded-xl text-sm italic">
                     Lien PrestaShop non configuré
                   </div>
                 )}
-                <Link href="/student/sites" className="block w-full border border-slate-200 text-slate-600 font-bold text-center py-2 rounded-xl text-sm hover:bg-slate-50 transition-colors">
+                <Link href="/student/sites" className="block w-full bg-white/5 border border-white/10 text-slate-300 font-bold text-center py-2 rounded-xl text-sm hover:bg-white/10 transition-colors">
                   Voir mes sites &amp; identifiants →
                 </Link>
               </div>
             </section>
 
             {/* Objectifs */}
-            <section className="bg-indigo-50 rounded-3xl p-6 border border-indigo-100">
-              <h3 className="font-bold text-indigo-900 text-sm uppercase mb-4 flex items-center gap-2">
+            <section className="bg-indigo-500/10 border border-indigo-500/20 rounded-3xl p-6">
+              <h3 className="font-bold text-indigo-300 text-sm uppercase mb-4 flex items-center gap-2">
                 <Trophy size={16} /> Objectifs
               </h3>
-              <p className="text-sm text-indigo-700 mb-4 leading-relaxed">
+              <p className="text-sm text-slate-400 mb-4 leading-relaxed">
                 Pour valider ton E5, assure-toi d'avoir au moins 80% de progression sur les deux plateformes.
               </p>
-              <Link href="/student/wordpress" className="block w-full bg-indigo-600 text-white font-bold text-center py-3 rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-[1.02] transition-all text-sm">
+              <Link href="/student/wordpress" className="block w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold text-center py-3 rounded-xl shadow-lg shadow-indigo-900/40 hover:from-indigo-500 hover:to-blue-500 hover:scale-[1.02] transition-all text-sm">
                 Continuer ma progression
               </Link>
             </section>
 
             {/* Changer mot de passe */}
-            <section className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
+            <section className="bg-white/5 border border-white/8 rounded-3xl p-6">
               <button
                 onClick={() => { setShowPwdForm(!showPwdForm); setPwdMsg(null); }}
-                className="w-full flex items-center justify-between text-sm font-bold text-slate-700"
+                className="w-full flex items-center justify-between text-sm font-bold text-slate-300"
               >
                 <span className="flex items-center gap-2"><KeyRound size={16} className="text-slate-400" /> Changer mon mot de passe</span>
                 <ChevronRight size={16} className={`text-slate-400 transition-transform ${showPwdForm ? "rotate-90" : ""}`} />
@@ -309,7 +308,7 @@ export default function StudentDashboard() {
                     placeholder="Mot de passe actuel"
                     value={currentPwd}
                     onChange={e => setCurrentPwd(e.target.value)}
-                    className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400"
+                    className="w-full text-sm px-3 py-2.5 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
                     autoComplete="current-password"
                   />
                   <input
@@ -317,7 +316,7 @@ export default function StudentDashboard() {
                     placeholder="Nouveau mot de passe"
                     value={newPwd}
                     onChange={e => setNewPwd(e.target.value)}
-                    className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400"
+                    className="w-full text-sm px-3 py-2.5 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
                     autoComplete="new-password"
                   />
                   <input
@@ -325,18 +324,18 @@ export default function StudentDashboard() {
                     placeholder="Confirmer le nouveau mot de passe"
                     value={confirmPwd}
                     onChange={e => setConfirmPwd(e.target.value)}
-                    className="w-full text-sm px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400"
+                    className="w-full text-sm px-3 py-2.5 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
                     autoComplete="new-password"
                   />
                   {pwdMsg && (
-                    <div className={`p-2.5 rounded-lg text-xs font-bold text-center ${pwdMsg.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                    <div className={`p-2.5 rounded-xl text-xs font-bold text-center border ${pwdMsg.type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"}`}>
                       {pwdMsg.text}
                     </div>
                   )}
                   <button
                     type="submit"
                     disabled={pwdLoading || !currentPwd || !newPwd || !confirmPwd}
-                    className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-indigo-700 disabled:opacity-40 transition-all"
+                    className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold py-2.5 rounded-xl text-sm hover:from-indigo-500 hover:to-blue-500 disabled:opacity-40 transition-all"
                   >
                     {pwdLoading ? "..." : "Modifier"}
                   </button>
@@ -355,10 +354,10 @@ function PlatformProgress({ label, value, color, href }: { label: string, value:
   return (
     <Link href={href} className="group block">
       <div className="flex justify-between items-end mb-2">
-        <span className="font-bold text-slate-700 text-sm group-hover:text-indigo-600 transition-colors">{label}</span>
-        <span className="font-black text-slate-800 text-xl">{value}%</span>
+        <span className="font-bold text-slate-300 text-sm group-hover:text-indigo-400 transition-colors">{label}</span>
+        <span className="font-black text-white text-xl">{value}%</span>
       </div>
-      <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-white/8 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color} transition-all duration-1000`} style={{ width: `${value}%` }} />
       </div>
     </Link>

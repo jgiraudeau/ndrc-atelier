@@ -13,11 +13,11 @@ import { apiGetStudent, apiGradeCompetency, type StudentWithProgress } from "@/s
 const TOTAL_COMPETENCIES = ALL_COMPETENCIES.length;
 
 const STATUS_LABELS: Record<number, { label: string; color: string; bg: string }> = {
-    0: { label: "Non évalué", color: "text-slate-400", bg: "bg-slate-50" },
-    1: { label: "Novice", color: "text-slate-600", bg: "bg-slate-100" },
-    2: { label: "Apprenti", color: "text-blue-600", bg: "bg-blue-50" },
-    3: { label: "Compétent", color: "text-green-600", bg: "bg-green-50" },
-    4: { label: "Expert", color: "text-purple-600", bg: "bg-purple-50" },
+    0: { label: "Non évalué", color: "text-slate-400", bg: "bg-white/5" },
+    1: { label: "Novice", color: "text-slate-400", bg: "bg-white/5" },
+    2: { label: "Apprenti", color: "text-blue-400", bg: "bg-blue-500/10" },
+    3: { label: "Compétent", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+    4: { label: "Expert", color: "text-purple-400", bg: "bg-purple-500/10" },
 };
 
 const LEVEL_NAMES: Record<number, string> = {
@@ -187,8 +187,8 @@ export default function StudentDetailPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <Loader2 size={32} className="animate-spin text-purple-500" />
+            <div className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 flex items-center justify-center">
+                <Loader2 size={32} className="animate-spin text-purple-400" />
             </div>
         );
     }
@@ -198,24 +198,24 @@ export default function StudentDetailPage() {
     const progress = TOTAL_COMPETENCIES > 0 ? Math.round((student.acquiredCount / TOTAL_COMPETENCIES) * 100) : 0;
 
     return (
-        <div className="min-h-screen bg-slate-50/50">
+        <div className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 font-sans">
             {/* Header */}
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+            <header className="sticky top-0 z-20 bg-slate-900/70 backdrop-blur-md border-b border-white/5">
                 <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
-                    <Link href="/teacher" className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                    <Link href="/teacher" className="p-2 text-slate-400 hover:text-white transition-colors">
                         <ArrowLeft size={20} />
                     </Link>
                     <div className="flex-1 min-w-0">
-                        <h1 className="text-lg font-black text-slate-800 truncate">
+                        <h1 className="text-lg font-black text-white truncate">
                             {student.firstName} {student.lastName}
                         </h1>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-md">{student.classCode}</span>
-                            <span className="px-2 py-0.5 bg-purple-50 text-purple-500 text-xs font-mono rounded-md">{student.identifier}</span>
+                            <span className="px-2 py-0.5 bg-white/8 border border-white/5 text-slate-400 text-xs font-bold rounded-md">{student.classCode}</span>
+                            <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs font-mono rounded-md border border-purple-500/20">{student.identifier}</span>
                         </div>
                     </div>
                     <div className="text-right hidden sm:block">
-                        <div className="text-sm font-bold text-slate-700">{student.acquiredCount}/{TOTAL_COMPETENCIES}</div>
+                        <div className="text-sm font-bold text-white">{student.acquiredCount}/{TOTAL_COMPETENCIES}</div>
                         <div className="text-xs text-slate-400">compétences acquises</div>
                     </div>
                 </div>
@@ -225,55 +225,55 @@ export default function StudentDetailPage() {
                 {/* Info élève + Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* URLs */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                        <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-3">
-                            <Globe size={15} className="text-purple-500" /> Sites élève
+                    <div className="bg-white/5 border border-white/8 rounded-2xl p-5">
+                        <h3 className="font-bold text-slate-300 text-sm flex items-center gap-2 mb-3">
+                            <Globe size={15} className="text-purple-400" /> Sites élève
                         </h3>
                         <div className="space-y-2">
                             {student.wpUrl && (
                                 <a href={student.wpUrl} target="_blank" rel="noopener noreferrer"
-                                   className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                                   className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 hover:underline transition-colors">
                                     <ExternalLink size={13} /> WordPress
                                 </a>
                             )}
                             {student.prestaUrl && (
                                 <a href={student.prestaUrl} target="_blank" rel="noopener noreferrer"
-                                   className="flex items-center gap-2 text-sm text-pink-600 hover:underline">
+                                   className="flex items-center gap-2 text-sm text-pink-400 hover:text-pink-300 hover:underline transition-colors">
                                     <ExternalLink size={13} /> PrestaShop
                                 </a>
                             )}
                             {!student.wpUrl && !student.prestaUrl && (
-                                <p className="text-xs text-slate-400 italic">Aucun site renseigné</p>
+                                <p className="text-xs text-slate-500 italic">Aucun site renseigné</p>
                             )}
                         </div>
                     </div>
 
                     {/* Stats */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                        <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-3">
-                            <User size={15} className="text-purple-500" /> Progression
+                    <div className="bg-white/5 border border-white/8 rounded-2xl p-5">
+                        <h3 className="font-bold text-slate-300 text-sm flex items-center gap-2 mb-3">
+                            <User size={15} className="text-purple-400" /> Progression
                         </h3>
                         {/* Barre de progression */}
                         <div className="flex items-center gap-2 mb-3">
-                            <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="flex-1 h-2.5 bg-white/8 rounded-full overflow-hidden">
                                 <div
-                                    className={`h-full rounded-full transition-all duration-500 ${progress >= 70 ? "bg-green-500" : progress >= 30 ? "bg-blue-500" : "bg-slate-300"}`}
+                                    className={`h-full rounded-full transition-all duration-500 ${progress >= 70 ? "bg-emerald-500" : progress >= 30 ? "bg-blue-500" : "bg-slate-600"}`}
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
-                            <span className="text-sm font-bold text-slate-700 w-10 text-right">{progress}%</span>
+                            <span className="text-sm font-bold text-white w-10 text-right">{progress}%</span>
                         </div>
                         <div className="grid grid-cols-3 gap-3 text-center">
                             <div>
-                                <div className="text-lg font-black text-green-600">{stats.studentAcquired}</div>
+                                <div className="text-lg font-black text-emerald-400">{stats.studentAcquired}</div>
                                 <div className="text-[10px] text-slate-400 uppercase font-bold">Acquises</div>
                             </div>
                             <div>
-                                <div className="text-lg font-black text-purple-600">{stats.teacherEvaluated}</div>
+                                <div className="text-lg font-black text-purple-400">{stats.teacherEvaluated}</div>
                                 <div className="text-[10px] text-slate-400 uppercase font-bold">Évaluées</div>
                             </div>
                             <div>
-                                <div className="text-lg font-black text-blue-600">{stats.teacherValidated}</div>
+                                <div className="text-lg font-black text-blue-400">{stats.teacherValidated}</div>
                                 <div className="text-[10px] text-slate-400 uppercase font-bold">Validées prof</div>
                             </div>
                         </div>
@@ -281,22 +281,22 @@ export default function StudentDetailPage() {
                 </div>
 
                 {/* Filtres */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+                <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
                     <div className="flex items-center gap-2 mb-3">
-                        <Filter size={14} className="text-purple-500" />
-                        <span className="text-xs font-bold text-slate-500 uppercase">Filtres</span>
+                        <Filter size={14} className="text-purple-400" />
+                        <span className="text-xs font-bold text-slate-400 uppercase">Filtres</span>
                     </div>
                     <div className="flex flex-wrap gap-3">
                         {/* Plateforme */}
-                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                        <div className="flex bg-black/20 border border-white/5 p-1 rounded-xl">
                             {(["ALL", "WORDPRESS", "PRESTASHOP"] as PlatformFilter[]).map(p => (
                                 <button
                                     key={p}
                                     onClick={() => setPlatformFilter(p)}
                                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
                                         platformFilter === p
-                                            ? "bg-white text-slate-800 shadow-sm"
-                                            : "text-slate-400 hover:text-slate-600"
+                                            ? "bg-white/10 text-white shadow-sm"
+                                            : "text-slate-500 hover:text-slate-300"
                                     }`}
                                 >
                                     {p === "ALL" ? "Toutes" : p === "WORDPRESS" ? "WordPress" : "PrestaShop"}
@@ -305,11 +305,11 @@ export default function StudentDetailPage() {
                         </div>
 
                         {/* Niveau */}
-                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                        <div className="flex bg-black/20 border border-white/5 p-1 rounded-xl">
                             <button
                                 onClick={() => setLevelFilter(null)}
                                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                                    levelFilter === null ? "bg-white text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                                    levelFilter === null ? "bg-white/10 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
                                 }`}
                             >
                                 Tous
@@ -319,7 +319,7 @@ export default function StudentDetailPage() {
                                     key={l}
                                     onClick={() => setLevelFilter(l)}
                                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                                        levelFilter === l ? "bg-white text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                                        levelFilter === l ? "bg-white/10 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
                                     }`}
                                 >
                                     Niv.{l}
@@ -328,7 +328,7 @@ export default function StudentDetailPage() {
                         </div>
 
                         {/* Statut évaluation */}
-                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                        <div className="flex bg-black/20 border border-white/5 p-1 rounded-xl">
                             {([
                                 { key: "ALL" as EvalFilter, label: "Toutes" },
                                 { key: "TO_EVALUATE" as EvalFilter, label: "À évaluer" },
@@ -339,7 +339,7 @@ export default function StudentDetailPage() {
                                     key={f.key}
                                     onClick={() => setEvalFilter(f.key)}
                                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                                        evalFilter === f.key ? "bg-white text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                                        evalFilter === f.key ? "bg-white/10 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
                                     }`}
                                 >
                                     {f.label}
@@ -351,7 +351,7 @@ export default function StudentDetailPage() {
 
                 {/* Compétences groupées */}
                 {grouped.length === 0 && (
-                    <div className="text-center py-12 text-slate-400 text-sm">
+                    <div className="text-center py-12 text-slate-500 text-sm">
                         Aucune compétence ne correspond aux filtres sélectionnés.
                     </div>
                 )}
@@ -360,7 +360,7 @@ export default function StudentDetailPage() {
                     <div key={platform} className="space-y-4">
                         {/* Titre plateforme */}
                         <h2 className={`text-sm font-black uppercase tracking-wider ${
-                            platform === "WORDPRESS" ? "text-blue-600" : "text-pink-600"
+                            platform === "WORDPRESS" ? "text-blue-400" : "text-pink-400"
                         }`}>
                             {platform === "WORDPRESS" ? "WordPress" : "PrestaShop"}
                         </h2>
@@ -372,20 +372,20 @@ export default function StudentDetailPage() {
                             const evaluatedCount = levelComps.filter(c => progressMap[c.id]?.teacherStatus != null).length;
 
                             return (
-                                <div key={sectionKey} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div key={sectionKey} className="bg-white/5 border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
                                     {/* Header niveau */}
                                     <button
                                         onClick={() => toggleSection(sectionKey)}
-                                        className="w-full flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors"
+                                        className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                                     >
                                         <div className="flex items-center gap-3">
                                             <span className={`px-2.5 py-1 rounded-lg text-xs font-black ${
-                                                platform === "WORDPRESS" ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"
+                                                platform === "WORDPRESS" ? "bg-blue-500/20 text-blue-400" : "bg-pink-500/20 text-pink-400"
                                             }`}>
                                                 Niveau {level}
                                             </span>
-                                            <span className="text-sm font-bold text-slate-700">{LEVEL_NAMES[level]}</span>
-                                            <span className="text-xs text-slate-400">
+                                            <span className="text-sm font-bold text-white">{LEVEL_NAMES[level]}</span>
+                                            <span className="text-xs text-slate-500">
                                                 {evaluatedCount}/{levelComps.length} évaluées
                                             </span>
                                         </div>
@@ -394,10 +394,10 @@ export default function StudentDetailPage() {
 
                                     {/* Contenu */}
                                     {!isCollapsed && (
-                                        <div className="border-t border-slate-100 divide-y divide-slate-50">
+                                        <div className="border-t border-white/5 divide-y divide-white/5">
                                             {categories.map(({ name: catName, competencies: comps }) => (
                                                 <div key={catName} className="p-4 space-y-3">
-                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{catName}</div>
+                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{catName}</div>
                                                     {comps.map(comp => {
                                                         const prog = progressMap[comp.id];
                                                         const input = gradeInputs[comp.id] || { teacherStatus: -1, teacherFeedback: "" };
@@ -405,21 +405,21 @@ export default function StudentDetailPage() {
                                                         const isSaved = savedId === comp.id;
 
                                                         return (
-                                                            <div key={comp.id} className="rounded-xl border border-slate-100 p-3 space-y-2 hover:border-slate-200 transition-colors">
+                                                            <div key={comp.id} className="rounded-xl border border-white/8 bg-black/10 p-3 space-y-2 hover:border-white/15 transition-colors">
                                                                 {/* Compétence label */}
-                                                                <div className="text-sm font-medium text-slate-800">{comp.label}</div>
+                                                                <div className="text-sm font-medium text-slate-200">{comp.label}</div>
 
                                                                 {/* Bloc auto-évaluation élève */}
                                                                 {prog && prog.status > 0 ? (
                                                                     <div className={`rounded-lg px-3 py-2 flex items-center justify-between gap-3 ${
-                                                                        prog.status >= 3 ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"
+                                                                        prog.status >= 3 ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-amber-500/10 border border-amber-500/20"
                                                                     }`}>
                                                                         <div className="flex items-center gap-2">
                                                                             {prog.status >= 3
-                                                                                ? <CheckCircle2 size={15} className="text-green-600" />
-                                                                                : <div className="w-4 h-4 rounded-full border-2 border-amber-400" />
+                                                                                ? <CheckCircle2 size={15} className="text-emerald-400" />
+                                                                                : <div className="w-4 h-4 rounded-full border-2 border-amber-500/50" />
                                                                             }
-                                                                            <span className="text-xs font-bold text-slate-600">Auto-évaluation élève :</span>
+                                                                            <span className="text-xs font-bold text-slate-400">Auto-évaluation élève :</span>
                                                                             <span className={`px-2 py-0.5 rounded-md text-xs font-black ${STATUS_LABELS[prog.status].bg} ${STATUS_LABELS[prog.status].color}`}>
                                                                                 {STATUS_LABELS[prog.status].label}
                                                                             </span>
@@ -427,7 +427,7 @@ export default function StudentDetailPage() {
                                                                         {prog.proof && (
                                                                             prog.proof.startsWith("http") ? (
                                                                                 <a href={prog.proof} target="_blank" rel="noopener noreferrer"
-                                                                                   className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-lg text-xs font-bold text-purple-600 hover:text-purple-800 hover:underline border border-purple-200 shadow-sm">
+                                                                                   className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 border border-purple-500/30 rounded-lg text-xs font-bold text-purple-400 hover:text-purple-300 hover:underline">
                                                                                     <ExternalLink size={12} /> Voir la preuve
                                                                                 </a>
                                                                             ) : (
@@ -436,13 +436,13 @@ export default function StudentDetailPage() {
                                                                         )}
                                                                     </div>
                                                                 ) : (
-                                                                    <div className="rounded-lg px-3 py-2 bg-slate-50 border border-slate-100 text-xs text-slate-400 italic">
+                                                                    <div className="rounded-lg px-3 py-2 bg-white/5 border border-white/5 text-xs text-slate-500 italic">
                                                                         Non évalué par l&apos;élève
                                                                     </div>
                                                                 )}
 
                                                                 {/* Contrôles notation formateur */}
-                                                                <div className="border-t border-slate-50 pt-2 flex flex-col sm:flex-row gap-2">
+                                                                <div className="border-t border-white/5 pt-2 flex flex-col sm:flex-row gap-2">
                                                                     <div className="flex-shrink-0">
                                                                         <div className="text-[9px] font-bold text-purple-400 uppercase mb-1">Éval. formateur</div>
                                                                         <select
@@ -451,7 +451,7 @@ export default function StudentDetailPage() {
                                                                                 ...prev,
                                                                                 [comp.id]: { ...prev[comp.id] || { teacherFeedback: "" }, teacherStatus: parseInt(e.target.value) }
                                                                             }))}
-                                                                            className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:border-purple-400 focus:outline-none bg-white"
+                                                                            className="text-xs px-2.5 py-1.5 rounded-xl bg-black/20 border border-white/10 text-white focus:border-purple-500/50 focus:outline-none"
                                                                         >
                                                                             <option value={-1}>-- Choisir --</option>
                                                                             <option value={1}>Novice</option>
@@ -471,17 +471,17 @@ export default function StudentDetailPage() {
                                                                                 [comp.id]: { ...prev[comp.id] || { teacherStatus: -1 }, teacherFeedback: e.target.value }
                                                                             }))}
                                                                             onKeyDown={e => { if (e.key === "Enter" && input.teacherStatus >= 0) handleGrade(comp.id); }}
-                                                                            className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:border-purple-400 focus:outline-none bg-white"
+                                                                            className="w-full text-xs px-2.5 py-1.5 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-500 focus:border-purple-500/50 focus:outline-none"
                                                                         />
                                                                     </div>
                                                                     <div className="flex items-end">
                                                                         <button
                                                                             onClick={() => handleGrade(comp.id)}
                                                                             disabled={isSaving || input.teacherStatus < 0}
-                                                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                                                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
                                                                                 isSaved
-                                                                                    ? "bg-green-100 text-green-700"
-                                                                                    : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                                                                                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                                                                    : "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30"
                                                                             } ${(isSaving || input.teacherStatus < 0) ? "opacity-50 cursor-not-allowed" : ""}`}
                                                                         >
                                                                             {isSaving ? <Loader2 size={12} className="animate-spin" /> :
@@ -493,10 +493,10 @@ export default function StudentDetailPage() {
 
                                                                 {/* Date dernière évaluation */}
                                                                 {prog?.teacherGradedAt && (
-                                                                    <div className="text-[10px] text-slate-300">
+                                                                    <div className="text-[10px] text-slate-600">
                                                                         Évalué le {new Date(prog.teacherGradedAt).toLocaleDateString("fr-FR")}
                                                                         {prog.teacherFeedback && (
-                                                                            <span className="ml-2 text-slate-400">— {prog.teacherFeedback}</span>
+                                                                            <span className="ml-2 text-slate-500">— {prog.teacherFeedback}</span>
                                                                         )}
                                                                     </div>
                                                                 )}

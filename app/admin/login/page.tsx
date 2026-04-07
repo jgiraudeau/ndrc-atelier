@@ -34,14 +34,14 @@ export default function AdminLoginPage() {
     };
 
     return (
-        <main className="min-h-screen bg-slate-900 font-sans flex items-center justify-center p-4">
-            <div className="w-full max-w-sm bg-slate-800 rounded-3xl shadow-lg border border-slate-700 p-8 relative">
-                <Link href="/" className="absolute top-4 left-4 p-2 text-slate-500 hover:text-slate-300">
+        <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 font-sans flex items-center justify-center p-4">
+            <div className="w-full max-w-sm bg-white/5 border border-white/8 rounded-3xl shadow-lg p-8 relative">
+                <Link href="/" className="absolute top-4 left-4 p-2 text-slate-500 hover:text-white transition-colors">
                     <ArrowLeft size={24} />
                 </Link>
 
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center text-amber-400 mx-auto mb-4">
+                    <div className="w-16 h-16 bg-amber-500/20 border border-amber-500/30 rounded-2xl flex items-center justify-center text-amber-400 mx-auto mb-4">
                         <Shield size={32} />
                     </div>
                     <h1 className="text-xl font-black text-white">Administration</h1>
@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
                         <input
                             type="email"
                             required
-                            className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 text-white outline-none focus:border-amber-500 transition-colors placeholder-slate-500"
+                            className="w-full p-3 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-amber-500/50 transition-colors"
                             placeholder="admin@email.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -67,7 +67,7 @@ export default function AdminLoginPage() {
                             <input
                                 type="password"
                                 required
-                                className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 text-white outline-none focus:border-amber-500 transition-colors placeholder-slate-500"
+                                className="w-full p-3 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-amber-500/50 transition-colors"
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -77,7 +77,7 @@ export default function AdminLoginPage() {
                     </div>
 
                     {error && (
-                        <div className="text-red-400 text-xs font-bold text-center bg-red-500/10 p-3 rounded-lg">
+                        <div className="text-red-400 text-xs font-bold text-center bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
                             {error}
                         </div>
                     )}
@@ -85,7 +85,7 @@ export default function AdminLoginPage() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-amber-500 text-slate-900 font-bold py-3 rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-md mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-900 font-bold py-3 rounded-xl hover:from-amber-400 hover:to-orange-400 active:scale-95 transition-all shadow-md shadow-amber-900/30 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoading ? "Connexion..." : "Se connecter"}
                     </button>

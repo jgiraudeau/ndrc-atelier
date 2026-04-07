@@ -50,31 +50,31 @@ export default function TeacherLoginPage() {
     };
 
     return (
-        <main className="min-h-screen bg-slate-50 font-sans flex items-center justify-center p-4">
-            <div className="w-full max-w-sm bg-white rounded-3xl shadow-lg border border-slate-100 p-8 relative">
-                <Link href="/" className="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600">
+        <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 font-sans flex items-center justify-center p-4">
+            <div className="w-full max-w-sm bg-white/5 border border-white/8 rounded-3xl shadow-lg p-8 relative">
+                <Link href="/" className="absolute top-4 left-4 p-2 text-slate-400 hover:text-white transition-colors">
                     <ArrowLeft size={24} />
                 </Link>
 
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 mx-auto mb-4">
+                    <div className="w-16 h-16 bg-purple-500/20 border border-purple-500/30 rounded-2xl flex items-center justify-center text-purple-400 mx-auto mb-4">
                         <User size={32} />
                     </div>
-                    <h1 className="text-xl font-black text-slate-800">Espace Formateur</h1>
+                    <h1 className="text-xl font-black text-white">Espace Formateur</h1>
                     <p className="text-xs text-slate-400 mt-1">Accès réservé aux enseignants</p>
                 </div>
 
                 {/* Toggle Login / Register */}
-                <div className="flex bg-slate-100 rounded-xl p-1 mb-6">
+                <div className="flex bg-black/20 rounded-xl p-1 mb-6 border border-white/5">
                     <button
                         onClick={() => { setMode("login"); setError(""); }}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${mode === "login" ? "bg-white text-purple-700 shadow-sm" : "text-slate-500"}`}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${mode === "login" ? "bg-white/10 text-purple-300 shadow-sm" : "text-slate-500"}`}
                     >
                         Connexion
                     </button>
                     <button
                         onClick={() => { setMode("register"); setError(""); }}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${mode === "register" ? "bg-white text-purple-700 shadow-sm" : "text-slate-500"}`}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${mode === "register" ? "bg-white/10 text-purple-300 shadow-sm" : "text-slate-500"}`}
                     >
                         Créer un compte
                     </button>
@@ -83,11 +83,11 @@ export default function TeacherLoginPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {mode === "register" && (
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nom complet</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Nom complet</label>
                             <input
                                 type="text"
                                 required
-                                className="w-full p-3 rounded-lg border border-slate-200 outline-none focus:border-purple-500 transition-colors"
+                                className="w-full p-3 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-purple-500/50 transition-colors"
                                 placeholder="Jean Dupont"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
@@ -96,11 +96,11 @@ export default function TeacherLoginPage() {
                     )}
 
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email</label>
                         <input
                             type="email"
                             required
-                            className="w-full p-3 rounded-lg border border-slate-200 outline-none focus:border-purple-500 transition-colors"
+                            className="w-full p-3 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-purple-500/50 transition-colors"
                             placeholder="prof@academie.fr"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -108,7 +108,7 @@ export default function TeacherLoginPage() {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
                             {mode === "register" ? "Mot de passe (8 car. min)" : "Mot de passe"}
                         </label>
                         <div className="relative">
@@ -116,23 +116,23 @@ export default function TeacherLoginPage() {
                                 type="password"
                                 required
                                 minLength={mode === "register" ? 8 : 1}
-                                className="w-full p-3 rounded-lg border border-slate-200 outline-none focus:border-purple-500 transition-colors"
+                                className="w-full p-3 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-500 outline-none focus:border-purple-500/50 transition-colors"
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
-                            <Lock className="absolute right-3 top-3 text-slate-400" size={18} />
+                            <Lock className="absolute right-3 top-3 text-slate-500" size={18} />
                         </div>
                     </div>
 
                     {successMessage && (
-                        <div className="text-green-700 text-xs font-bold text-center bg-green-50 p-3 rounded-lg">
+                        <div className="text-emerald-400 text-xs font-bold text-center bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl">
                             {successMessage}
                         </div>
                     )}
 
                     {error && (
-                        <div className="text-red-500 text-xs font-bold text-center bg-red-50 p-3 rounded-lg">
+                        <div className="text-red-400 text-xs font-bold text-center bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
                             {error}
                         </div>
                     )}
@@ -140,7 +140,7 @@ export default function TeacherLoginPage() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 active:scale-95 transition-all shadow-md mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold py-3 rounded-xl hover:from-purple-500 hover:to-violet-500 active:scale-95 transition-all shadow-md mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                         {isLoading ? (
                             <span className="animate-pulse">Chargement...</span>

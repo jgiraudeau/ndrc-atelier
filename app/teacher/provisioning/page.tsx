@@ -127,7 +127,7 @@ export default function TeacherProvisioningPage() {
   }
 
   if (loading) return (
-    <main className="min-h-screen bg-slate-900 flex items-center justify-center">
+    <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 flex items-center justify-center">
       <div className="text-slate-400 animate-pulse">Chargement...</div>
     </main>
   )
@@ -135,21 +135,21 @@ export default function TeacherProvisioningPage() {
   const hasActiveConfig = configs.length > 0
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="bg-indigo-900 text-white px-6 py-4 flex items-center gap-4 shadow-lg">
-        <Link href="/teacher" className="text-indigo-300 hover:text-white transition-colors">
+    <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900">
+      <header className="sticky top-0 z-20 bg-slate-900/70 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center gap-4">
+        <Link href="/teacher" className="text-slate-400 hover:text-white transition-colors">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center text-amber-400">
+          <div className="w-9 h-9 bg-amber-500/20 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400">
             <Zap size={18} />
           </div>
           <div>
-            <h1 className="text-lg font-black">Création des sites élèves</h1>
-            <p className="text-xs text-indigo-300">1 WordPress + 1 PrestaShop par élève</p>
+            <h1 className="text-lg font-black text-white">Création des sites élèves</h1>
+            <p className="text-xs text-slate-400">1 WordPress + 1 PrestaShop par élève</p>
           </div>
         </div>
-        <button onClick={load} className="ml-auto text-indigo-300 hover:text-white transition-colors">
+        <button onClick={load} className="ml-auto text-slate-400 hover:text-white transition-colors">
           <RefreshCw size={16} />
         </button>
       </header>
@@ -157,31 +157,31 @@ export default function TeacherProvisioningPage() {
       <div className="max-w-3xl mx-auto p-6 space-y-4">
         {/* Info cards */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-blue-50 rounded-xl p-4 flex items-center gap-3">
-            <Globe size={24} className="text-blue-500" />
+          <div className="bg-white/5 border border-white/8 rounded-2xl p-4 flex items-center gap-3">
+            <Globe size={24} className="text-blue-400" />
             <div>
-              <div className="font-bold text-blue-800 text-sm">WordPress</div>
-              <div className="text-xs text-blue-600">Site vitrine / blog</div>
+              <div className="font-bold text-white text-sm">WordPress</div>
+              <div className="text-xs text-slate-400">Site vitrine / blog</div>
             </div>
           </div>
-          <div className="bg-orange-50 rounded-xl p-4 flex items-center gap-3">
-            <ShoppingCart size={24} className="text-orange-500" />
+          <div className="bg-white/5 border border-white/8 rounded-2xl p-4 flex items-center gap-3">
+            <ShoppingCart size={24} className="text-amber-400" />
             <div>
-              <div className="font-bold text-orange-800 text-sm">PrestaShop</div>
-              <div className="text-xs text-orange-600">E-commerce</div>
+              <div className="font-bold text-white text-sm">PrestaShop</div>
+              <div className="text-xs text-slate-400">E-commerce</div>
             </div>
           </div>
-          <Link href="/teacher/provisioning/grille" className="bg-indigo-50 rounded-xl p-4 flex items-center gap-3 hover:bg-indigo-100 transition-colors">
-            <Layers size={24} className="text-indigo-500" />
+          <Link href="/teacher/provisioning/grille" className="bg-white/5 border border-white/8 rounded-2xl p-4 flex items-center gap-3 hover:bg-white/10 transition-colors">
+            <Layers size={24} className="text-purple-400" />
             <div>
-              <div className="font-bold text-indigo-800 text-sm">Grille des sites</div>
-              <div className="text-xs text-indigo-600">Installer &amp; cloner</div>
+              <div className="font-bold text-white text-sm">Grille des sites</div>
+              <div className="text-xs text-slate-400">Installer &amp; cloner</div>
             </div>
           </Link>
         </div>
 
         {!hasActiveConfig && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm flex items-center gap-2">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-amber-400 text-sm flex items-center gap-2">
             <AlertCircle size={16} />
             Aucun serveur WHM disponible. Contactez l&apos;administrateur.
           </div>
@@ -191,31 +191,31 @@ export default function TeacherProvisioningPage() {
           <button
             onClick={() => setShowForm(!showForm)}
             disabled={!hasActiveConfig || classes.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg font-bold text-sm hover:bg-amber-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-bold text-sm hover:from-amber-400 hover:to-orange-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-amber-900/30"
           >
             <Zap size={16} /> Créer les sites
           </button>
         </div>
 
         {showForm && (
-          <form onSubmit={handleCreate} className="bg-white rounded-xl border border-slate-200 p-5 space-y-3 shadow-sm">
-            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide">Nouveau job</h2>
+          <form onSubmit={handleCreate} className="bg-white/5 border border-white/8 rounded-2xl p-5 space-y-3">
+            <h2 className="font-bold text-white text-sm uppercase tracking-wide">Nouveau job</h2>
             {error && (
-              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
                 <AlertCircle size={14} /> {error}
               </div>
             )}
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">Type de site</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Type de site</label>
               <div className="grid grid-cols-2 gap-2">
                 {["WORDPRESS", "PRESTASHOP"].map((type) => (
                   <button
                     key={type}
                     type="button"
                     onClick={() => setForm({ ...form, siteType: type })}
-                    className={`py-2 rounded-lg text-sm font-bold border-2 transition-colors ${form.siteType === type
-                      ? type === "WORDPRESS" ? "border-blue-500 bg-blue-50 text-blue-700" : "border-orange-500 bg-orange-50 text-orange-700"
-                      : "border-slate-200 text-slate-500 hover:border-slate-300"
+                    className={`py-2 rounded-xl text-sm font-bold border-2 transition-colors ${form.siteType === type
+                      ? type === "WORDPRESS" ? "border-blue-500/50 bg-blue-500/20 text-blue-400" : "border-amber-500/50 bg-amber-500/20 text-amber-400"
+                      : "border-white/10 bg-white/5 text-slate-500 hover:border-white/20"
                     }`}
                   >
                     {type === "WORDPRESS" ? "WordPress" : "PrestaShop"}
@@ -224,11 +224,11 @@ export default function TeacherProvisioningPage() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">Classe cible</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Classe cible</label>
               <select
                 value={form.classId}
                 onChange={(e) => setForm({ ...form, classId: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 text-sm bg-black/20 border border-white/10 text-white rounded-xl focus:outline-none focus:border-amber-500/50"
                 required
               >
                 <option value="">Sélectionner une classe</option>
@@ -240,11 +240,11 @@ export default function TeacherProvisioningPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">Serveur WHM</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Serveur WHM</label>
               <select
                 value={form.whmConfigId}
                 onChange={(e) => setForm({ ...form, whmConfigId: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 text-sm bg-black/20 border border-white/10 text-white rounded-xl focus:outline-none focus:border-amber-500/50"
                 required
               >
                 <option value="">Sélectionner</option>
@@ -255,11 +255,11 @@ export default function TeacherProvisioningPage() {
             </div>
             <div className="flex gap-2 pt-1">
               <button type="submit" disabled={creating}
-                className="flex-1 py-2 bg-amber-500 text-white rounded-lg font-bold text-sm hover:bg-amber-600 disabled:opacity-50 transition-colors">
+                className="flex-1 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-bold text-sm hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 transition-all">
                 {creating ? "Création..." : "Créer le job"}
               </button>
               <button type="button" onClick={() => setShowForm(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-200 transition-colors">
+                className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 rounded-xl font-bold text-sm hover:bg-white/10 transition-all">
                 Annuler
               </button>
             </div>
@@ -276,18 +276,18 @@ export default function TeacherProvisioningPage() {
         ) : (
           <div className="space-y-3">
             {jobs.map((job) => (
-              <div key={job.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div key={job.id} className="bg-white/5 border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
                 <div className="p-4 flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${job.siteType === "WORDPRESS" ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"}`}>
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${job.siteType === "WORDPRESS" ? "bg-blue-500/20 text-blue-400" : "bg-amber-500/20 text-amber-400"}`}>
                         {job.siteType}
                       </span>
                       <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS_STYLE[job.status]}`}>
                         {STATUS_LABEL[job.status]}
                       </span>
                     </div>
-                    <h3 className="font-bold text-slate-800">{job.class.name}</h3>
+                    <h3 className="font-bold text-white">{job.class.name}</h3>
                     <p className="text-xs text-slate-400 mt-0.5">
                       {new Date(job.createdAt).toLocaleString("fr-FR")}
                       {job.sites.length > 0 && (
@@ -314,13 +314,13 @@ export default function TeacherProvisioningPage() {
                           await fetch(`/api/provisioning/jobs/${job.id}/cancel`, { method: "POST", headers: { Authorization: `Bearer ${token}` } })
                           load()
                         }}
-                        className="flex items-center gap-1 px-2 py-1.5 bg-red-100 text-red-600 rounded-lg font-bold text-xs hover:bg-red-200 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg font-bold text-xs hover:bg-red-500/20 transition-colors"
                       >
                         <XCircle size={12} /> Annuler
                       </button>
                     )}
-                    {job.status === "COMPLETED" && <CheckCircle size={20} className="text-green-500" />}
-                    {job.status === "FAILED" && <XCircle size={20} className="text-red-500" />}
+                    {job.status === "COMPLETED" && <CheckCircle size={20} className="text-emerald-400" />}
+                    {job.status === "FAILED" && <XCircle size={20} className="text-red-400" />}
                     {(job.status === "FAILED" || job.status === "COMPLETED" || job.status === "PARTIAL") && (
                       <button
                         onClick={async () => {
@@ -328,7 +328,7 @@ export default function TeacherProvisioningPage() {
                           await fetch(`/api/provisioning/jobs/${job.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
                           load()
                         }}
-                        className="text-slate-300 hover:text-red-500 transition-colors"
+                        className="text-slate-500 hover:text-red-400 transition-colors"
                         title="Supprimer"
                       >
                         <Trash2 size={14} />
@@ -337,7 +337,7 @@ export default function TeacherProvisioningPage() {
                     {job.log.length > 0 && (
                       <button
                         onClick={() => setExpandedJob(expandedJob === job.id ? null : job.id)}
-                        className="text-xs text-slate-400 hover:text-slate-600 underline"
+                        className="text-xs text-slate-400 hover:text-white underline transition-colors"
                       >
                         {expandedJob === job.id ? "Masquer" : "Logs"}
                       </button>
@@ -346,7 +346,7 @@ export default function TeacherProvisioningPage() {
                 </div>
 
                 {expandedJob === job.id && job.log.length > 0 && (
-                  <div className="border-t border-slate-100 bg-slate-900 p-3 max-h-48 overflow-y-auto">
+                  <div className="border-t border-white/5 bg-black/30 p-3 max-h-48 overflow-y-auto">
                     {job.log.map((line, i) => (
                       <p key={i} className={`text-xs font-mono ${line.includes("✓") ? "text-green-400" : line.includes("✗") || line.includes("ERREUR") ? "text-red-400" : "text-slate-300"}`}>
                         {line}

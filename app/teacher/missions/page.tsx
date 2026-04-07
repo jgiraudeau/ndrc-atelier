@@ -129,22 +129,22 @@ export default function TeacherMissionsPage() {
     };
 
     if (isLoading) return (
-        <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-            <Loader2 className="animate-spin text-purple-500 w-8 h-8" />
+        <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 flex items-center justify-center">
+            <Loader2 className="animate-spin text-purple-400 w-8 h-8" />
         </main>
     );
 
     return (
-        <main className="min-h-screen bg-slate-50 font-sans pb-20">
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+        <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 font-sans pb-20">
+            <header className="sticky top-0 z-20 bg-slate-900/70 backdrop-blur-md border-b border-white/5">
                 <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Link href="/teacher" className="p-2 -ml-2 text-slate-400 hover:text-slate-600">
+                        <Link href="/teacher" className="p-2 -ml-2 text-slate-400 hover:text-white transition-colors">
                             <ArrowLeft size={22} />
                         </Link>
                         <div className="flex items-center gap-2">
-                            <Target className="text-purple-600" size={20} />
-                            <h1 className="font-bold text-slate-700 text-lg">Missions</h1>
+                            <Target className="text-purple-400" size={20} />
+                            <h1 className="font-bold text-white text-lg">Missions</h1>
                         </div>
                     </div>
                 </div>
@@ -152,16 +152,16 @@ export default function TeacherMissionsPage() {
 
             <div className="max-w-4xl mx-auto p-6">
                 {/* Tabs */}
-                <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+                <div className="flex bg-black/20 border border-white/5 p-1 rounded-xl mb-6">
                     <button
                         onClick={() => setTab("list")}
-                        className={cn("flex-1 py-2.5 text-sm font-bold rounded-lg transition-all", tab === "list" ? "bg-white text-purple-700 shadow-sm" : "text-slate-500")}
+                        className={cn("flex-1 py-2.5 text-sm font-bold rounded-lg transition-all", tab === "list" ? "bg-white/10 text-purple-300 shadow-sm" : "text-slate-500")}
                     >
                         Mes missions ({missions.length})
                     </button>
                     <button
                         onClick={() => setTab("generate")}
-                        className={cn("flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5", tab === "generate" ? "bg-white text-purple-700 shadow-sm" : "text-slate-500")}
+                        className={cn("flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5", tab === "generate" ? "bg-white/10 text-purple-300 shadow-sm" : "text-slate-500")}
                     >
                         <Sparkles size={14} /> Générer
                     </button>
@@ -171,36 +171,36 @@ export default function TeacherMissionsPage() {
                     <div className="space-y-6">
                         {generatedMission ? (
                             <div className="space-y-4">
-                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                    <div className="bg-slate-900 px-6 py-4 flex items-center gap-3">
-                                        <Target size={20} className="text-white" />
+                                <div className="bg-white/5 border border-white/8 rounded-2xl overflow-hidden">
+                                    <div className="bg-black/30 px-6 py-4 flex items-center gap-3 border-b border-white/5">
+                                        <Target size={20} className="text-purple-400" />
                                         <h3 className="text-white font-bold text-sm">Mission générée</h3>
                                     </div>
-                                    <div className="p-6 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: formatMarkdown(generatedMission) }} />
+                                    <div className="p-6 prose prose-sm max-w-none prose-headings:text-white prose-p:text-slate-300 prose-li:text-slate-300" dangerouslySetInnerHTML={{ __html: formatMarkdown(generatedMission) }} />
                                 </div>
                                 <div className="flex gap-3">
-                                    <button onClick={handleSave} className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-colors flex items-center justify-center gap-2">
+                                    <button onClick={handleSave} className="flex-1 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold py-3 rounded-xl hover:from-purple-500 hover:to-violet-500 transition-all flex items-center justify-center gap-2">
                                         <BookmarkCheck size={18} /> Sauvegarder
                                     </button>
-                                    <button onClick={() => setGeneratedMission(null)} className="px-6 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition-colors">
+                                    <button onClick={() => setGeneratedMission(null)} className="px-6 bg-white/5 border border-white/10 text-slate-300 font-bold py-3 rounded-xl hover:bg-white/10 transition-all">
                                         Annuler
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-6 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                            <div className="space-y-6 bg-white/5 border border-white/8 p-6 rounded-2xl">
                                 {/* Plateforme */}
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">1. Plateforme</label>
-                                    <div className="flex bg-slate-100 p-1 rounded-xl">
-                                        <button onClick={() => setSelectedPlatform("WORDPRESS")} className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-colors", selectedPlatform === "WORDPRESS" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500")}>WordPress</button>
-                                        <button onClick={() => setSelectedPlatform("PRESTASHOP")} className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-colors", selectedPlatform === "PRESTASHOP" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500")}>PrestaShop</button>
+                                    <label className="block text-sm font-bold text-slate-300 mb-2">1. Plateforme</label>
+                                    <div className="flex bg-black/20 border border-white/5 p-1 rounded-xl">
+                                        <button onClick={() => setSelectedPlatform("WORDPRESS")} className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-colors", selectedPlatform === "WORDPRESS" ? "bg-white/10 text-blue-400 shadow-sm" : "text-slate-500")}>WordPress</button>
+                                        <button onClick={() => setSelectedPlatform("PRESTASHOP")} className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-colors", selectedPlatform === "PRESTASHOP" ? "bg-white/10 text-pink-400 shadow-sm" : "text-slate-500")}>PrestaShop</button>
                                     </div>
                                 </div>
 
                                 {/* Niveau */}
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">2. Niveau</label>
+                                    <label className="block text-sm font-bold text-slate-300 mb-2">2. Niveau</label>
                                     <div className="grid grid-cols-4 gap-2">
                                         {[
                                             { val: 1, label: "Découverte" },
@@ -210,10 +210,10 @@ export default function TeacherMissionsPage() {
                                         ].map(lvl => (
                                             <button key={lvl.val} onClick={() => setSelectedLevel(lvl.val as 1|2|3|4)}
                                                 className={cn("p-3 rounded-xl border text-center transition-all",
-                                                    selectedLevel === lvl.val ? "bg-purple-50 border-purple-400 ring-1 ring-purple-400" : "bg-white border-slate-200 hover:border-slate-300"
+                                                    selectedLevel === lvl.val ? "bg-purple-500/20 border-purple-500/50 ring-1 ring-purple-500/50" : "bg-white/5 border-white/10 hover:border-white/20"
                                                 )}>
-                                                <div className="font-bold text-sm">{lvl.val}</div>
-                                                <div className="text-[10px] text-slate-400 uppercase font-bold">{lvl.label}</div>
+                                                <div className="font-bold text-sm text-white">{lvl.val}</div>
+                                                <div className="text-[10px] text-slate-500 uppercase font-bold">{lvl.label}</div>
                                             </button>
                                         ))}
                                     </div>
@@ -222,10 +222,10 @@ export default function TeacherMissionsPage() {
                                 {/* Compétences */}
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <label className="text-sm font-bold text-slate-700">3. Compétences</label>
-                                        <span className="text-xs font-bold text-slate-400 p-1 bg-slate-100 rounded-md">{selectedIds.length} sélectionnées</span>
+                                        <label className="text-sm font-bold text-slate-300">3. Compétences</label>
+                                        <span className="text-xs font-bold text-slate-400 p-1 bg-white/5 border border-white/5 rounded-md">{selectedIds.length} sélectionnées</span>
                                     </div>
-                                    <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none mb-3"
+                                    <select className="w-full bg-black/20 border border-white/10 text-white rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-purple-500/50 mb-3"
                                         value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
                                         {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                     </select>
@@ -235,10 +235,10 @@ export default function TeacherMissionsPage() {
                                             return (
                                                 <div key={comp.id} onClick={() => setSelectedIds(prev => sel ? prev.filter(i => i !== comp.id) : [...prev, comp.id])}
                                                     className={cn("p-3 rounded-xl border cursor-pointer transition-all flex gap-3 select-none",
-                                                        sel ? "bg-purple-600 border-purple-600 text-white shadow-md" : "bg-white border-slate-200 hover:border-purple-300 text-slate-700"
+                                                        sel ? "bg-purple-600/30 border-purple-500/50 text-white shadow-md" : "bg-white/5 border-white/10 hover:border-purple-500/30 text-slate-300"
                                                     )}>
-                                                    <div className={cn("w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border", sel ? "bg-white border-white text-purple-600" : "border-slate-300")}>
-                                                        {sel && <div className="w-2.5 h-2.5 rounded-full bg-purple-600" />}
+                                                    <div className={cn("w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border", sel ? "bg-purple-500 border-purple-400 text-white" : "border-white/20")}>
+                                                        {sel && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                                                     </div>
                                                     <span className="text-xs font-medium leading-relaxed">{comp.label}</span>
                                                 </div>
@@ -249,16 +249,16 @@ export default function TeacherMissionsPage() {
 
                                 {/* Contexte */}
                                 <div>
-                                    <label className="text-sm font-bold text-slate-700 mb-2 block">4. Contexte <span className="text-slate-400 font-normal">(optionnel)</span></label>
+                                    <label className="text-sm font-bold text-slate-300 mb-2 block">4. Contexte <span className="text-slate-500 font-normal">(optionnel)</span></label>
                                     <input type="text" value={context} onChange={e => setContext(e.target.value)}
                                         placeholder="Ex: Boutique de sneakers, Agence web..."
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-400" />
+                                        className="w-full bg-black/20 border border-white/10 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/50" />
                                 </div>
 
-                                {errorMsg && <p className="text-sm text-red-500 font-bold p-3 bg-red-50 rounded-xl">{errorMsg}</p>}
+                                {errorMsg && <p className="text-sm text-red-400 font-bold p-3 bg-red-500/10 border border-red-500/20 rounded-xl">{errorMsg}</p>}
 
                                 <button onClick={handleGenerate} disabled={generating || selectedIds.length === 0}
-                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all disabled:opacity-50 flex justify-center items-center gap-2">
+                                    className="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all disabled:opacity-50 flex justify-center items-center gap-2">
                                     {generating ? <><Loader2 size={18} className="animate-spin" /> Génération en cours...</> : <><Sparkles size={18} /> Générer la mission</>}
                                 </button>
                             </div>
@@ -274,17 +274,17 @@ export default function TeacherMissionsPage() {
                                 <p className="text-sm mt-1">Génère ta première mission dans l'onglet "Générer"</p>
                             </div>
                         ) : missions.map(mission => (
-                            <div key={mission.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div key={mission.id} className="bg-white/5 border border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
                                 {/* Header */}
-                                <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+                                <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
                                     onClick={() => setExpandedId(expandedId === mission.id ? null : mission.id)}>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="font-bold text-slate-800 text-sm truncate">{mission.title}</h3>
+                                            <h3 className="font-bold text-white text-sm truncate">{mission.title}</h3>
                                             <span className={cn("px-2 py-0.5 text-[10px] font-bold uppercase rounded-full",
-                                                mission.platform === "WORDPRESS" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-pink-700"
+                                                mission.platform === "WORDPRESS" ? "bg-blue-500/20 text-blue-400" : "bg-pink-500/20 text-pink-400"
                                             )}>{mission.platform}</span>
-                                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-slate-100 text-slate-500">Niv.{mission.level}</span>
+                                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-white/8 border border-white/5 text-slate-400">Niv.{mission.level}</span>
                                         </div>
                                         <div className="flex items-center gap-3 text-xs text-slate-400">
                                             <span>{new Date(mission.createdAt).toLocaleDateString("fr-FR")}</span>
@@ -296,31 +296,31 @@ export default function TeacherMissionsPage() {
 
                                 {/* Expanded content */}
                                 {expandedId === mission.id && (
-                                    <div className="border-t border-slate-100">
-                                        <div className="p-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: formatMarkdown(mission.content) }} />
+                                    <div className="border-t border-white/5">
+                                        <div className="p-4 prose prose-sm max-w-none prose-headings:text-white prose-p:text-slate-300 prose-li:text-slate-300" dangerouslySetInnerHTML={{ __html: formatMarkdown(mission.content) }} />
 
                                         {/* Actions */}
-                                        <div className="p-4 border-t border-slate-100 flex flex-wrap gap-2">
+                                        <div className="p-4 border-t border-white/5 flex flex-wrap gap-2">
                                             <button onClick={() => { setAssigningId(assigningId === mission.id ? null : mission.id); setAssignMode("class"); setAssignTarget(""); setAssignStudentIds([]); }}
-                                                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors">
+                                                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/20 transition-colors">
                                                 <Send size={14} /> Assigner
                                             </button>
                                             <button onClick={() => downloadMissionPdf(mission.content, mission.title)}
-                                                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors">
+                                                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-colors">
                                                 <Download size={14} /> PDF
                                             </button>
                                             <button onClick={() => downloadMissionWord(mission.content, mission.title)}
-                                                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors">
+                                                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-colors">
                                                 <FileText size={14} /> Word
                                             </button>
                                             {confirmDeleteId === mission.id ? (
                                                 <div className="flex gap-1">
                                                     <button onClick={() => handleDelete(mission.id)} className="px-4 py-2 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700">Confirmer</button>
-                                                    <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 text-xs font-bold rounded-lg bg-slate-100 text-slate-600">Annuler</button>
+                                                    <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-slate-400">Annuler</button>
                                                 </div>
                                             ) : (
                                                 <button onClick={() => setConfirmDeleteId(mission.id)}
-                                                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+                                                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-colors">
                                                     <Trash2 size={14} /> Supprimer
                                                 </button>
                                             )}
@@ -328,32 +328,32 @@ export default function TeacherMissionsPage() {
 
                                         {/* Assign panel */}
                                         {assigningId === mission.id && (
-                                            <div className="p-4 border-t border-slate-100 bg-purple-50/50">
-                                                <div className="flex bg-white p-1 rounded-lg mb-3 w-fit">
-                                                    <button onClick={() => setAssignMode("class")} className={cn("px-3 py-1.5 text-xs font-bold rounded-md transition-colors", assignMode === "class" ? "bg-purple-100 text-purple-700" : "text-slate-500")}>Par classe</button>
-                                                    <button onClick={() => setAssignMode("students")} className={cn("px-3 py-1.5 text-xs font-bold rounded-md transition-colors", assignMode === "students" ? "bg-purple-100 text-purple-700" : "text-slate-500")}>Par étudiant</button>
+                                            <div className="p-4 border-t border-white/5 bg-purple-500/5">
+                                                <div className="flex bg-black/20 border border-white/5 p-1 rounded-lg mb-3 w-fit">
+                                                    <button onClick={() => setAssignMode("class")} className={cn("px-3 py-1.5 text-xs font-bold rounded-md transition-colors", assignMode === "class" ? "bg-purple-500/20 text-purple-400" : "text-slate-500")}>Par classe</button>
+                                                    <button onClick={() => setAssignMode("students")} className={cn("px-3 py-1.5 text-xs font-bold rounded-md transition-colors", assignMode === "students" ? "bg-purple-500/20 text-purple-400" : "text-slate-500")}>Par étudiant</button>
                                                 </div>
 
                                                 {assignMode === "class" ? (
                                                     <div className="space-y-2">
                                                         <select value={assignTarget} onChange={e => setAssignTarget(e.target.value)}
-                                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none">
+                                                            className="w-full bg-black/20 border border-white/10 text-white rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-purple-500/50">
                                                             <option value="">Choisir une classe...</option>
                                                             {classes.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
                                                         </select>
                                                         {assignTarget && (
-                                                            <p className="text-xs text-slate-500">{students.filter(s => s.classCode === assignTarget).length} étudiant(s) dans cette classe</p>
+                                                            <p className="text-xs text-slate-400">{students.filter(s => s.classCode === assignTarget).length} étudiant(s) dans cette classe</p>
                                                         )}
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-1 max-h-40 overflow-y-auto">
                                                         {students.map(s => (
-                                                            <label key={s.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white cursor-pointer">
+                                                            <label key={s.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 cursor-pointer">
                                                                 <input type="checkbox" checked={assignStudentIds.includes(s.id)}
                                                                     onChange={() => setAssignStudentIds(prev => prev.includes(s.id) ? prev.filter(i => i !== s.id) : [...prev, s.id])}
-                                                                    className="rounded border-slate-300" />
-                                                                <span className="text-sm font-medium text-slate-700">{s.firstName} {s.lastName}</span>
-                                                                <span className="text-xs text-slate-400">{s.classCode}</span>
+                                                                    className="rounded border-white/20" />
+                                                                <span className="text-sm font-medium text-slate-300">{s.firstName} {s.lastName}</span>
+                                                                <span className="text-xs text-slate-500">{s.classCode}</span>
                                                             </label>
                                                         ))}
                                                     </div>
@@ -361,7 +361,7 @@ export default function TeacherMissionsPage() {
 
                                                 <button onClick={() => handleAssign(mission.id)}
                                                     disabled={(assignMode === "class" && !assignTarget) || (assignMode === "students" && assignStudentIds.length === 0)}
-                                                    className="mt-3 bg-purple-600 text-white font-bold py-2 px-6 rounded-lg text-sm hover:bg-purple-700 disabled:opacity-50 transition-colors">
+                                                    className="mt-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-bold py-2 px-6 rounded-xl text-sm hover:from-purple-500 hover:to-violet-500 disabled:opacity-50 transition-all">
                                                     Assigner la mission
                                                 </button>
                                             </div>
