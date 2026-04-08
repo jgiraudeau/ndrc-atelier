@@ -205,8 +205,8 @@ export default function GrillePage() {
   // Élèves déjà affectés sur cet onglet (pour éviter double affectation)
   const assignedStudentIds = new Set(studentSites.filter(s => s.student).map(s => s.student!.id))
 
-  // Un site est "installé" s'il a un adminUrl (app Softaculous déployée)
-  const isInstalled = (site: Site) => !!site.adminUrl
+  // Un site est "installé" s'il a un adminUrl OU s'il est un modèle ACTIVE (créé manuellement)
+  const isInstalled = (site: Site) => !!site.adminUrl || (site.isModel && site.status === "ACTIVE")
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900">
