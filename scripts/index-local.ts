@@ -114,13 +114,6 @@ async function main() {
   // Importer de manière dynamique (une fois les .env chargés !)
   const { prisma } = await import("../src/lib/prisma");
   const { indexDocument } = await import("../src/lib/rag");
-  const { GoogleGenAI } = await import("@google/genai");
-
-  function getGenAI() {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY manquant dans .env");
-    return new GoogleGenAI({ apiKey });
-  }
 
   // Purge globale initiale (Optionnel, mettez 'true' si vous voulez tout écraser)
   const purgeAll = process.argv.includes("--purge");
@@ -165,7 +158,6 @@ async function main() {
 
         const chunks = await withRetry(() => indexDocument(ai, prisma, {
           documentId: null,
-          fileUri:    "",
           mimeType:   mimeType,
           category:   entry.category,
           platform:   entry.platform,

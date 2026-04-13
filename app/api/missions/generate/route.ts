@@ -220,9 +220,11 @@ Génère uniquement le contenu de cet email.
         });
         if (dbDocs.length > 0) {
           parts.push({ text: "\nDocuments de la base de connaissances :\n" });
-          dbDocs.forEach((doc: { displayName: string; category: string; geminiUri: string; mimeType: string }) => {
+          dbDocs.forEach((doc: { displayName: string; category: string; rawText: string | null; mimeType: string }) => {
             parts.push({ text: `--- ${doc.displayName} (${doc.category}) ---\n` });
-            parts.push({ fileData: { fileUri: doc.geminiUri, mimeType: doc.mimeType } });
+            if (doc.rawText) {
+              parts.push({ text: doc.rawText });
+            }
           });
         }
       } catch (dbErr) {

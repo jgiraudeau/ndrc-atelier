@@ -207,7 +207,6 @@ export async function POST(request: NextRequest) {
 
     const chunks = await indexDocument(ai, prisma, {
       documentId: null,
-      fileUri:    "",
       mimeType:   job.mimeType,
       category:   job.category,
       platform:   job.platform,
