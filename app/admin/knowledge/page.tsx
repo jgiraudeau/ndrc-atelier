@@ -38,6 +38,7 @@ export default function KnowledgeBaseAdmin() {
   const [reindexResult, setReindexResult]     = useState<ReindexResult | null>(null)
   const [reindexError, setReindexError]       = useState<string | null>(null)
   const [localIndexing, setLocalIndexing]     = useState(false)
+  const [localProgress, setLocalProgress]     = useState<{ current: number; total: number; file: string } | null>(null)
   const [localResult, setLocalResult]         = useState<{ message: string; indexed: number; total: number; results: { file: string; chunks: number; error?: string }[] } | null>(null)
   const [localError, setLocalError]           = useState<string | null>(null)
 
@@ -120,22 +121,69 @@ export default function KnowledgeBaseAdmin() {
     setLocalIndexing(true)
     setLocalResult(null)
     setLocalError(null)
+    setLocalProgress(null)
 
     try {
-      const res  = await fetch("/api/admin/knowledge/index-local", {
+      // 1. Obtenir la liste des fichiers
+      const listRes  = await fetch("/api/admin/knowledge/index-local", { headers: authHeader })
+      const listData = await listRes.json()
+      if (listData.status !== "success") {
+        setLocalError(listData.message || "Impossible de lister les fichiers.")
+        return
+      }
+      const files: { source: string; filename: string }[] = listData.data.files
+      const total = files.length
+
+      if (total === 0) {
+        setLocalResult({ message: "Aucun fichier trouvé dans /knowledge/.", indexed: 0, total: 0, results: [] })
+        return
+      }
+
+      // 2. Purge globale des anciens chunks locaux (premier appel POST avec purgeAll)
+      await fetch("/api/admin/knowledge/index-local", {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
+        body: JSON.stringify({ purgeAll: true }),
       })
-      const data = await res.json()
-      if (data.status === "success") {
-        setLocalResult(data.data)
-      } else {
-        setLocalError(data.message || "Erreur lors de l'indexation locale.")
+
+      // 3. Traiter chaque fichier un par un
+      const results: { file: string; chunks: number; error?: string }[] = []
+      let indexed = 0
+
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i]
+        setLocalProgress({ current: i + 1, total, file: f.filename })
+
+        try {
+          const res  = await fetch("/api/admin/knowledge/index-local", {
+            method: "POST",
+            headers: { ...authHeader, "Content-Type": "application/json" },
+            body: JSON.stringify({ singleFile: f.source }),
+          })
+          const data = await res.json()
+          if (data.status === "success") {
+            results.push({ file: f.source, chunks: data.data.chunks })
+            indexed++
+          } else {
+            results.push({ file: f.source, chunks: 0, error: data.message })
+          }
+        } catch (err: any) {
+          results.push({ file: f.source, chunks: 0, error: err.message })
+        }
       }
+
+      const totalChunks = results.reduce((s, r) => s + r.chunks, 0)
+      setLocalResult({
+        message: `${indexed}/${total} fichier(s) indexé(s) — ${totalChunks} chunks créés.`,
+        indexed,
+        total,
+        results,
+      })
     } catch (err: any) {
       setLocalError(err.message || "Erreur réseau.")
     } finally {
       setLocalIndexing(false)
+      setLocalProgress(null)
     }
   }
 
@@ -351,7 +399,11 @@ export default function KnowledgeBaseAdmin() {
             className="border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
           >
             {localIndexing
-              ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Indexation en cours… (2–3 min)</>
+              ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {localProgress
+                    ? `${localProgress.current}/${localProgress.total} — ${localProgress.file}`
+                    : "Préparation…"}
+                </>
               : <><RefreshCw className="h-4 w-4 mr-2" />Indexer les fichiers locaux</>}
           </Button>
 

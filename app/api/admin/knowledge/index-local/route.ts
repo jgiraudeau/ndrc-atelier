@@ -1,14 +1,12 @@
 /**
- * POST /api/admin/knowledge/index-local
+ * GET  /api/admin/knowledge/index-local  → liste les fichiers dans /knowledge/
+ * POST /api/admin/knowledge/index-local  → indexe UN seul fichier (body: { singleFile: "local:dossier/fichier.pdf" })
  *
- * Scanne le dossier /knowledge/ du projet, extrait le texte de chaque fichier
- * via Gemini File API, génère les embeddings et stocke les chunks en DB.
+ * Le client appelle d'abord GET pour obtenir la liste, puis fait N appels POST
+ * (un par fichier) pour traiter chaque fichier dans la limite des 10 s Vercel Hobby.
  *
- * Une fois indexés, ces fichiers ne sont PLUS envoyés en base64 à chaque
- * génération de mission → économie massive de tokens.
- *
- * Idempotent : appeler plusieurs fois est sans danger (les anciens chunks
- * locaux sont supprimés et recréés).
+ * Idempotent : les anciens chunks du fichier ciblé sont supprimés avant re-création.
+ * Pour une réinitialisation complète, le premier appel POST peut inclure { purgeAll: true }.
  */
 import { NextRequest } from "next/server";
 import { requireAuth, apiError, apiSuccess } from "@/src/lib/api-helpers";
@@ -18,7 +16,7 @@ import { indexDocument } from "@/src/lib/rag";
 import fs from "fs";
 import path from "path";
 
-export const maxDuration = 300; // Vercel Pro : 5 min max
+export const maxDuration = 60; // 60 s par fichier (Vercel Pro) — sur Hobby c'est capé à 10 s
 
 // ─── Mapping dossier → catégorie / plateforme ────────────────────────────────
 
@@ -26,7 +24,7 @@ type FolderEntry = {
   folder:   string;
   category: string;
   platform: string | null;
-  rootOnly?: boolean; // true = seulement les fichiers à la racine du dossier
+  rootOnly?: boolean;
 };
 
 const FOLDER_MAP: FolderEntry[] = [
@@ -78,18 +76,12 @@ function isTextFile(filename: string): boolean {
   return ext === "md" || ext === "txt";
 }
 
-/**
- * Extrait le texte d'un fichier binaire (PDF, DOCX…) en l'envoyant
- * directement en base64 via generateContent (inlineData).
- * Plus rapide et fiable que le File API pour les fichiers locaux.
- */
 async function extractTextInline(
   ai: GoogleGenAI,
   filePath: string,
   mimeType: string
 ): Promise<string> {
   const base64 = fs.readFileSync(filePath).toString("base64");
-
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: [
@@ -107,11 +99,74 @@ async function extractTextInline(
       },
     ],
   });
-
   return response.text ?? "";
 }
 
-// ─── Handler principal ────────────────────────────────────────────────────────
+// ─── Construire la liste complète des fichiers ────────────────────────────────
+
+type FileJob = {
+  source:   string;
+  filename: string;
+  filePath: string;
+  mimeType: string;
+  category: string;
+  platform: string | null;
+  isText:   boolean;
+};
+
+function buildFileList(knowledgeDir: string): FileJob[] {
+  const jobs: FileJob[] = [];
+  for (const entry of FOLDER_MAP) {
+    const folderPath = path.join(knowledgeDir, entry.folder);
+    if (!fs.existsSync(folderPath)) continue;
+    const files = fs.readdirSync(folderPath);
+    for (const file of files) {
+      const fullPath = path.join(folderPath, file);
+      if (fs.statSync(fullPath).isDirectory()) continue;
+      const mimeType = getMimeType(file);
+      if (!mimeType) continue;
+      jobs.push({
+        source:   `local:${entry.folder}/${file}`,
+        filename: file,
+        filePath: fullPath,
+        mimeType,
+        category: entry.category,
+        platform: entry.platform,
+        isText:   isTextFile(file),
+      });
+    }
+  }
+  return jobs;
+}
+
+// ─── GET : retourne la liste des fichiers sans les traiter ───────────────────
+
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await requireAuth(request, ["ADMIN"]);
+    if ("status" in auth && auth.status !== 200) return auth;
+
+    const knowledgeDir = path.join(process.cwd(), "knowledge");
+    if (!fs.existsSync(knowledgeDir)) {
+      return apiError("Dossier /knowledge introuvable sur ce déploiement.", 404);
+    }
+
+    const jobs = buildFileList(knowledgeDir);
+    return apiSuccess({
+      total: jobs.length,
+      files: jobs.map((j) => ({
+        source:   j.source,
+        filename: j.filename,
+        category: j.category,
+        platform: j.platform,
+      })),
+    });
+  } catch (error: any) {
+    return apiError(error.message || "Erreur.", 500);
+  }
+}
+
+// ─── POST : indexe UN seul fichier ───────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
@@ -123,108 +178,57 @@ export async function POST(request: NextRequest) {
       return apiError("Dossier /knowledge introuvable sur ce déploiement.", 404);
     }
 
-    const ai = getGenAI();
+    const body = await request.json().catch(() => ({}));
+    const { singleFile, purgeAll } = body as { singleFile?: string; purgeAll?: boolean };
 
-    // 1. Supprimer tous les anciens chunks locaux pour re-partir proprement
-    const deleted = await prisma.documentChunk.deleteMany({
-      where: { source: { startsWith: "local:" } },
-    });
-    console.log(`[index-local] ${deleted.count} anciens chunks locaux supprimés`);
-
-    // 2. Collecter tous les fichiers à indexer
-    type FileJob = {
-      filePath: string;
-      filename: string;
-      mimeType: string;
-      category: string;
-      platform: string | null;
-      source:   string;
-      isText:   boolean;
-    };
-
-    const jobs: FileJob[] = [];
-
-    for (const entry of FOLDER_MAP) {
-      const folderPath = path.join(knowledgeDir, entry.folder);
-      if (!fs.existsSync(folderPath)) continue;
-
-      const files = fs.readdirSync(folderPath);
-      for (const file of files) {
-        const fullPath = path.join(folderPath, file);
-        const stat     = fs.statSync(fullPath);
-        if (stat.isDirectory()) continue;
-        if (entry.rootOnly && fullPath !== path.join(folderPath, file)) continue;
-
-        const mimeType = getMimeType(file);
-        if (!mimeType) continue;
-
-        jobs.push({
-          filePath: fullPath,
-          filename: file,
-          mimeType,
-          category: entry.category,
-          platform: entry.platform,
-          source:   `local:${entry.folder}/${file}`,
-          isText:   isTextFile(file),
-        });
-      }
-    }
-
-    if (jobs.length === 0) {
-      return apiSuccess({
-        message: "Aucun fichier trouvé dans /knowledge/.",
-        indexed: 0,
-        total:   0,
-        results: [],
+    // Purge globale en option (appelée une fois avant la boucle cliente)
+    if (purgeAll) {
+      const deleted = await prisma.documentChunk.deleteMany({
+        where: { source: { startsWith: "local:" } },
       });
-    }
-
-    console.log(`[index-local] ${jobs.length} fichier(s) à indexer`);
-
-    // 3. Indexer chaque fichier
-    const results: { file: string; chunks: number; error?: string }[] = [];
-
-    for (const job of jobs) {
-      try {
-        let chunks: number;
-
-        // Extraction du texte selon le type de fichier
-        let rawText: string;
-        if (job.isText) {
-          // Markdown / TXT : lecture directe
-          rawText = fs.readFileSync(job.filePath, "utf-8");
-        } else {
-          // PDF / DOCX : extraction via inlineData base64 (plus rapide que File API)
-          rawText = await extractTextInline(ai, job.filePath, job.mimeType);
-        }
-
-        chunks = await indexDocument(ai, prisma, {
-          documentId: null,
-          fileUri:    "",
-          mimeType:   job.mimeType,
-          category:   job.category,
-          platform:   job.platform,
-          source:     job.source,
-          rawText,
-        });
-
-        results.push({ file: job.source, chunks });
-        console.log(`[index-local] ✅ ${job.source} → ${chunks} chunks`);
-      } catch (err: any) {
-        results.push({ file: job.source, chunks: 0, error: err.message });
-        console.error(`[index-local] ❌ ${job.source}:`, err.message);
+      console.log(`[index-local] purge: ${deleted.count} chunks supprimés`);
+      if (!singleFile) {
+        return apiSuccess({ purged: deleted.count });
       }
     }
 
-    const total = results.reduce((sum, r) => sum + r.chunks, 0);
-    return apiSuccess({
-      message: `${results.filter(r => !r.error).length}/${jobs.length} fichier(s) indexé(s) — ${total} chunks créés.`,
-      indexed: results.filter(r => !r.error).length,
-      total,
-      results,
+    if (!singleFile) {
+      return apiError("Paramètre singleFile requis.", 400);
+    }
+
+    // Trouver le job correspondant
+    const jobs = buildFileList(knowledgeDir);
+    const job  = jobs.find((j) => j.source === singleFile);
+    if (!job) {
+      return apiError(`Fichier introuvable : ${singleFile}`, 404);
+    }
+
+    // Supprimer les anciens chunks de CE fichier uniquement
+    await prisma.documentChunk.deleteMany({ where: { source: job.source } });
+
+    const ai = getGenAI();
+    let rawText: string;
+
+    if (job.isText) {
+      rawText = fs.readFileSync(job.filePath, "utf-8");
+    } else {
+      rawText = await extractTextInline(ai, job.filePath, job.mimeType);
+    }
+
+    const chunks = await indexDocument(ai, prisma, {
+      documentId: null,
+      fileUri:    "",
+      mimeType:   job.mimeType,
+      category:   job.category,
+      platform:   job.platform,
+      source:     job.source,
+      rawText,
     });
+
+    console.log(`[index-local] ✅ ${job.source} → ${chunks} chunks`);
+    return apiSuccess({ source: job.source, chunks });
   } catch (error: any) {
-    console.error("[index-local] Erreur:", error);
-    return apiError(error.message || "Erreur lors de l'indexation locale.", 500);
+    console.error("[index-local] ❌", error);
+    return apiError(error.message || "Erreur lors de l'indexation.", 500);
   }
 }

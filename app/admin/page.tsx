@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, CheckCircle, XCircle, Trash2, Users, BookOpen, LogOut, Clock, Filter, Server, Zap, UserCog, Layers } from "lucide-react";
+import { Shield, CheckCircle, XCircle, Trash2, Users, BookOpen, LogOut, Clock, Filter, Server, Zap, UserCog, Layers, Brain } from "lucide-react";
 import Link from "next/link";
 import { apiGetTeachers, apiManageTeacher, type TeacherAdmin } from "@/src/lib/api-client";
 
@@ -109,7 +109,7 @@ export default function AdminDashboardPage() {
 
             <div className="max-w-4xl mx-auto p-6">
                 {/* Liens rapides nouveaux modules */}
-                <div className="grid grid-cols-4 gap-3 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
                     <Link href="/admin/whm-config" className="flex items-center gap-3 p-4 bg-white/5 border border-white/8 rounded-2xl hover:bg-white/10 transition-all group">
                         <div className="w-10 h-10 bg-blue-500/20 border border-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 group-hover:bg-blue-500/30 transition-colors">
                             <Server size={18} />
@@ -144,6 +144,15 @@ export default function AdminDashboardPage() {
                         <div>
                             <div className="font-bold text-white text-sm">Grille des sites</div>
                             <div className="text-xs text-slate-400">Installer &amp; cloner</div>
+                        </div>
+                    </Link>
+                    <Link href="/admin/knowledge" className="flex items-center gap-3 p-4 bg-white/5 border border-white/8 rounded-2xl hover:bg-white/10 transition-all group">
+                        <div className="w-10 h-10 bg-violet-500/20 border border-violet-500/20 rounded-xl flex items-center justify-center text-violet-400 group-hover:bg-violet-500/30 transition-colors">
+                            <Brain size={18} />
+                        </div>
+                        <div>
+                            <div className="font-bold text-white text-sm">Base IA</div>
+                            <div className="text-xs text-slate-400">Connaissances RAG</div>
                         </div>
                     </Link>
                 </div>
