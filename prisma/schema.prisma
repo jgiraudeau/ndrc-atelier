@@ -267,7 +267,7 @@ model KnowledgeDocument {
   id          String          @id @default(cuid())
   filename    String                                 // ex: "mon_tuto.pdf"
   displayName String                                 // Nom affiché
-  geminiUri   String                                 // URI Gemini File API (ex: files/123xyz)
+  rawText     String?                                // Stockage du texte extrait (permet la re-indexation illimitée)
   mimeType    String                                 // as application/pdf
   category    String                                 // "COURS" | "SUJET" | "CONTEXTE" | "REFERENTIEL"
   platform    String?                                // "WORDPRESS" | "PRESTASHOP" | "COMMUN"

@@ -9,17 +9,10 @@
  */
 import { NextRequest } from "next/server";
 import { requireAuth, apiError, apiSuccess } from "@/src/lib/api-helpers";
-import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/src/lib/prisma";
-import { indexDocument } from "@/src/lib/rag";
+import { indexDocument, getGenAI } from "@/src/lib/rag";
 
 export const maxDuration = 300; // Vercel Pro : 5 min max
-
-function getGenAI(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY manquant.");
-  return new GoogleGenAI({ apiKey });
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,10 +38,10 @@ export async function POST(request: NextRequest) {
       try {
         const chunks = await indexDocument(ai, prisma, {
           documentId: doc.id,
-          fileUri:    doc.geminiUri,
           mimeType:   doc.mimeType,
           category:   doc.category,
           platform:   doc.platform,
+          rawText:    doc.rawText || undefined, // Si le texte est déjà en BD, ça bypass l'extraction
         });
         results.push({ id: doc.id, name: doc.displayName, chunks });
         console.log(`[RAG] ✅ ${doc.displayName} → ${chunks} chunks`);

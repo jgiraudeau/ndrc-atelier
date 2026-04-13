@@ -1,19 +1,8 @@
 import { NextRequest } from "next/server";
 import { requireAuth, apiError, apiSuccess } from "@/src/lib/api-helpers";
-import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/src/lib/prisma";
-import { indexDocument } from "@/src/lib/rag";
+import { indexDocument, getGenAI } from "@/src/lib/rag";
 import { waitUntil } from "@vercel/functions";
-import * as fs from "fs";
-import * as path from "path";
-
-function getGenAI(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("La clé d'API Gemini (GEMINI_API_KEY) n'est pas configurée.");
-  // On utilise FORCÉMENT le Developer API car l'API de Fichiers (ai.files) 
-  // n'existe PAS sur Vertex AI (qui nécessite des buckets Google Cloud Storage).
-  return new GoogleGenAI({ apiKey });
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,46 +22,16 @@ export async function POST(request: NextRequest) {
       platform = null;
     }
 
-    // 1. Sauvegarde temporaire pour le SDK
-    const bytes   = await file.arrayBuffer();
-    const buffer  = Buffer.from(bytes);
-    const tmpPath = path.join("/tmp", file.name);
-    fs.writeFileSync(tmpPath, buffer);
+    // 1. Convertir en Base64 pour l'envoi en streaming
+    const bytes = await file.arrayBuffer();
+    const inlineBase64 = Buffer.from(bytes).toString("base64");
+    const mimeType = file.type || "application/octet-stream";
 
-    // 2. Upload vers Gemini File API
-    const ai           = getGenAI();
-    const uploadedFile: any = await ai.files.upload({
-      file: tmpPath,
-      config: {
-        mimeType:    file.type || "application/octet-stream",
-        displayName: file.name,
-      },
-    });
-
-    let state       = uploadedFile.state;
-    let currentFile = uploadedFile;
-
-    // Attente du traitement Gemini
-    while (state === "PROCESSING") {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      currentFile = await ai.files.get({ name: uploadedFile.name });
-      state       = (currentFile as any).state;
-    }
-
-    if (state === "FAILED") {
-      fs.unlinkSync(tmpPath);
-      throw new Error("Échec du traitement du fichier côté Gemini.");
-    }
-
-    const geminiUri = (currentFile as any).uri || uploadedFile.uri;
-    const mimeType  = (currentFile as any).mimeType || file.type || "application/octet-stream";
-
-    // 3. Enregistrement en Base de Données
+    // 2. Enregistrement en Base de Données (sans geminiUri ni rawText pour le moment)
     const document = await prisma.knowledgeDocument.create({
       data: {
         filename:    file.name,
         displayName: file.name,
-        geminiUri,
         mimeType,
         category,
         platform,
@@ -80,15 +39,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 4. Nettoyage local
-    fs.unlinkSync(tmpPath);
+    const ai = getGenAI();
 
-    // 5. Indexation RAG en arrière-plan
-    //    waitUntil garantit que Vercel ne tue pas la tâche après l'apiSuccess
+    // 3. Indexation RAG en arrière-plan
+    // waitUntil garantit que Vercel exécute ce code même après avoir retourné 'success'
     waitUntil(
       indexDocument(ai, prisma, {
         documentId: document.id,
-        fileUri:    geminiUri,
+        inlineBase64,
         mimeType,
         category,
         platform,

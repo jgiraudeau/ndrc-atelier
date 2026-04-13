@@ -19,8 +19,30 @@ type PrismaInstance = typeof prismaInstance;
 const CHUNK_SIZE    = 900;   // caractères par chunk
 const CHUNK_OVERLAP = 150;   // overlap entre deux chunks consécutifs
 const MIN_CHUNK_LEN = 80;    // chunk trop court = ignoré
-const EMBED_MODEL   = "gemini-embedding-001"; // NOUVEAU MODÈLE GOOGLE ACTIF
+const EMBED_MODEL   = "text-embedding-004"; // Modèle natif Vertex AI
 const EXTRACT_MODEL = "gemini-2.5-flash";
+
+// ─── Initialisation API ───────────────────────────────────────────────────────
+
+export function getGenAI(): GoogleGenAI {
+  const b64     = process.env.GOOGLE_CREDENTIALS_BASE64;
+  const project = process.env.GOOGLE_CLOUD_PROJECT;
+
+  if (b64 && project) {
+    const credentials = JSON.parse(Buffer.from(b64, "base64").toString("utf-8"));
+    return new GoogleGenAI({
+      vertexai: true,
+      project,
+      location: process.env.GOOGLE_CLOUD_LOCATION ?? "europe-west1",
+      googleAuthOptions: { credentials },
+    });
+  }
+
+  // Fallback (déconseillé si on veut les crédits Vertex)
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("Aucune configuration Gemini trouvée.");
+  return new GoogleGenAI({ apiKey });
+}
 
 // ─── Chunking ─────────────────────────────────────────────────────────────────
 
@@ -65,12 +87,12 @@ async function withRateLimitRetry<T>(fn: () => Promise<T>, retries = 3): Promise
 // ─── Extraction de texte ──────────────────────────────────────────────────────
 
 /**
- * Extrait le texte brut d'un fichier déjà uploadé sur Gemini File API.
- * Coût : une seule requête Flash (une fois à l'upload, pas à chaque génération).
+ * Extrait le texte brut d'un fichier via inlineData (base64).
+ * Coût : une seule requête Flash (une fois à l'upload).
  */
 export async function extractTextViaGemini(
   ai: GoogleGenAI,
-  fileUri: string,
+  inlineBase64: string,
   mimeType: string
 ): Promise<string> {
   const response = await withRateLimitRetry(() => ai.models.generateContent({
@@ -79,7 +101,7 @@ export async function extractTextViaGemini(
       {
         role: "user",
         parts: [
-          { fileData: { fileUri, mimeType } },
+          { inlineData: { data: inlineBase64, mimeType } },
           {
             text:
               "Extrais intégralement le texte de ce document. " +
@@ -205,7 +227,7 @@ export async function indexDocument(
   prisma: PrismaInstance,
   params: {
     documentId: string | null; // null pour les fichiers locaux
-    fileUri:    string;
+    inlineBase64?: string;
     mimeType:   string;
     category:   string;
     platform:   string | null;
@@ -214,7 +236,11 @@ export async function indexDocument(
   }
 ): Promise<number> {
   // 1. Extraction du texte (ou utilisation du texte fourni)
-  const rawText = params.rawText ?? await extractTextViaGemini(ai, params.fileUri, params.mimeType);
+  let rawText = params.rawText ?? "";
+  if (!rawText.trim()) {
+    if (!params.inlineBase64) throw new Error("Aucune donnée (texte ni inlineBase64) fournie.");
+    rawText = await extractTextViaGemini(ai, params.inlineBase64, params.mimeType);
+  }
   if (!rawText.trim()) return 0;
 
   // 2. Chunking
@@ -250,7 +276,7 @@ export async function indexDocument(
   if (params.documentId) {
     await prisma.knowledgeDocument.update({
       where: { id: params.documentId },
-      data:  { indexed: true },
+      data:  { indexed: true, rawText },
     });
   }
 
