@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, UploadCloud, File, Loader2, RefreshCw, CheckCircle2, XCircle } from "lucide-react"
+import { AlertCircle, UploadCloud, File, Loader2, RefreshCw, CheckCircle2, XCircle, FolderOpen } from "lucide-react"
 
 type KnowledgeDoc = {
   id: string
@@ -25,6 +25,7 @@ type ReindexResult = {
   results: { id: string; name: string; chunks: number; error?: string }[]
 }
 
+
 export default function KnowledgeBaseAdmin() {
   const [documents, setDocuments]         = useState<KnowledgeDoc[]>([])
   const [loading, setLoading]             = useState(true)
@@ -33,9 +34,12 @@ export default function KnowledgeBaseAdmin() {
   const [platform, setPlatform]           = useState("NONE")
   const [uploading, setUploading]         = useState(false)
   const [error, setError]                 = useState<string | null>(null)
-  const [reindexing, setReindexing]       = useState(false)
-  const [reindexResult, setReindexResult] = useState<ReindexResult | null>(null)
-  const [reindexError, setReindexError]   = useState<string | null>(null)
+  const [reindexing, setReindexing]           = useState(false)
+  const [reindexResult, setReindexResult]     = useState<ReindexResult | null>(null)
+  const [reindexError, setReindexError]       = useState<string | null>(null)
+  const [localIndexing, setLocalIndexing]     = useState(false)
+  const [localResult, setLocalResult]         = useState<{ message: string; indexed: number; total: number; results: { file: string; chunks: number; error?: string }[] } | null>(null)
+  const [localError, setLocalError]           = useState<string | null>(null)
 
   const token = typeof window !== "undefined" ? localStorage.getItem("ndrc_token") : null
 
@@ -109,6 +113,29 @@ export default function KnowledgeBaseAdmin() {
       setReindexError(err.message || "Erreur réseau.")
     } finally {
       setReindexing(false)
+    }
+  }
+
+  const handleLocalIndex = async () => {
+    setLocalIndexing(true)
+    setLocalResult(null)
+    setLocalError(null)
+
+    try {
+      const res  = await fetch("/api/admin/knowledge/index-local", {
+        method: "POST",
+        headers: { ...authHeader, "Content-Type": "application/json" },
+      })
+      const data = await res.json()
+      if (data.status === "success") {
+        setLocalResult(data.data)
+      } else {
+        setLocalError(data.message || "Erreur lors de l'indexation locale.")
+      }
+    } catch (err: any) {
+      setLocalError(err.message || "Erreur réseau.")
+    } finally {
+      setLocalIndexing(false)
     }
   }
 
@@ -303,6 +330,60 @@ export default function KnowledgeBaseAdmin() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Fichiers locaux du repo ── */}
+      <Card className="border-amber-200 dark:border-amber-800">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FolderOpen className="h-5 w-5 text-amber-500" />
+            Fichiers locaux <span className="text-sm font-normal text-muted-foreground">/knowledge/</span>
+          </CardTitle>
+          <CardDescription>
+            Indexe les PDFs et documents commités dans le repo (cours, référentiel, sujets).
+            Cette opération peut prendre 2–3 minutes selon le nombre de fichiers.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            onClick={handleLocalIndex}
+            disabled={localIndexing}
+            variant="outline"
+            className="border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+          >
+            {localIndexing
+              ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Indexation en cours… (2–3 min)</>
+              : <><RefreshCw className="h-4 w-4 mr-2" />Indexer les fichiers locaux</>}
+          </Button>
+
+          {localResult && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 font-medium">
+                <CheckCircle2 className="h-4 w-4" />
+                {localResult.message}
+              </div>
+              {localResult.results.length > 0 && (
+                <div className="max-h-48 overflow-y-auto border rounded-md divide-y text-xs">
+                  {localResult.results.map((r) => (
+                    <div key={r.file} className="flex items-center justify-between px-3 py-1.5">
+                      <span className="truncate text-muted-foreground max-w-xs">{r.file}</span>
+                      {r.error
+                        ? <span className="text-destructive shrink-0 ml-2">{r.error}</span>
+                        : <span className="text-green-600 dark:text-green-400 shrink-0 ml-2 font-medium">{r.chunks} chunks</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {localError && (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <XCircle className="h-4 w-4" />
+              {localError}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

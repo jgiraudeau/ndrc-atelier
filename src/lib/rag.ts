@@ -183,15 +183,17 @@ export async function indexDocument(
   ai: GoogleGenAI,
   prisma: PrismaInstance,
   params: {
-    documentId: string;
+    documentId: string | null; // null pour les fichiers locaux
     fileUri:    string;
     mimeType:   string;
     category:   string;
     platform:   string | null;
+    source?:    string;        // ex: "local:wordpress/tuto.pdf"
+    rawText?:   string;        // texte déjà extrait (ex: markdown)
   }
 ): Promise<number> {
-  // 1. Extraction du texte
-  const rawText = await extractTextViaGemini(ai, params.fileUri, params.mimeType);
+  // 1. Extraction du texte (ou utilisation du texte fourni)
+  const rawText = params.rawText ?? await extractTextViaGemini(ai, params.fileUri, params.mimeType);
   if (!rawText.trim()) return 0;
 
   // 2. Chunking
@@ -201,10 +203,14 @@ export async function indexDocument(
   // 3. Embeddings en batch
   const embeddings = await generateEmbeddingsBatch(ai, chunks);
 
-  // 4. Suppression des anciens chunks pour ce document (re-indexation propre)
-  await prisma.documentChunk.deleteMany({
-    where: { documentId: params.documentId },
-  });
+  const source = params.source ?? (params.documentId ? `db:${params.documentId}` : "local:unknown");
+
+  // 4. Suppression des anciens chunks pour cette source (re-indexation propre)
+  if (params.documentId) {
+    await prisma.documentChunk.deleteMany({ where: { documentId: params.documentId } });
+  } else {
+    await prisma.documentChunk.deleteMany({ where: { source } });
+  }
 
   // 5. Insertion en DB
   await prisma.documentChunk.createMany({
@@ -212,18 +218,20 @@ export async function indexDocument(
       content,
       embedding:  embeddings[i],
       chunkIndex: i,
-      source:     `db:${params.documentId}`,
+      source,
       category:   params.category,
       platform:   params.platform,
       documentId: params.documentId,
     })),
   });
 
-  // 6. Marquer le document comme indexé
-  await prisma.knowledgeDocument.update({
-    where: { id: params.documentId },
-    data:  { indexed: true },
-  });
+  // 6. Marquer le document comme indexé (uniquement pour les docs DB)
+  if (params.documentId) {
+    await prisma.knowledgeDocument.update({
+      where: { id: params.documentId },
+      data:  { indexed: true },
+    });
+  }
 
   return chunks.length;
 }
