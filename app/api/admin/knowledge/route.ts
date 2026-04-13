@@ -3,26 +3,15 @@ import { requireAuth, apiError, apiSuccess } from "@/src/lib/api-helpers";
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/src/lib/prisma";
 import { indexDocument } from "@/src/lib/rag";
+import { waitUntil } from "@vercel/functions";
 import * as fs from "fs";
 import * as path from "path";
 
 function getGenAI(): GoogleGenAI {
-  const b64     = process.env.GOOGLE_CREDENTIALS_BASE64;
-  const project = process.env.GOOGLE_CLOUD_PROJECT;
-
-  if (b64 && project) {
-    const json        = Buffer.from(b64, "base64").toString("utf-8");
-    const credentials = JSON.parse(json);
-    return new GoogleGenAI({
-      vertexai: true,
-      project,
-      location: process.env.GOOGLE_CLOUD_LOCATION ?? "europe-west1",
-      googleAuthOptions: { credentials },
-    });
-  }
-
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("La clé d'API Gemini n'est pas configurée.");
+  if (!apiKey) throw new Error("La clé d'API Gemini (GEMINI_API_KEY) n'est pas configurée.");
+  // On utilise FORCÉMENT le Developer API car l'API de Fichiers (ai.files) 
+  // n'existe PAS sur Vertex AI (qui nécessite des buckets Google Cloud Storage).
   return new GoogleGenAI({ apiKey });
 }
 
@@ -94,22 +83,25 @@ export async function POST(request: NextRequest) {
     // 4. Nettoyage local
     fs.unlinkSync(tmpPath);
 
-    // 5. Indexation RAG en arrière-plan (non-bloquant pour la réponse)
-    //    On lance sans await pour ne pas dépasser le timeout Vercel
-    indexDocument(ai, prisma, {
-      documentId: document.id,
-      fileUri:    geminiUri,
-      mimeType,
-      category,
-      platform,
-    })
-      .then((n) => console.log(`[RAG] ${n} chunks indexés pour "${file.name}"`))
-      .catch((err) => console.error("[RAG] Erreur indexation:", err));
+    // 5. Indexation RAG en arrière-plan
+    //    waitUntil garantit que Vercel ne tue pas la tâche après l'apiSuccess
+    waitUntil(
+      indexDocument(ai, prisma, {
+        documentId: document.id,
+        fileUri:    geminiUri,
+        mimeType,
+        category,
+        platform,
+      })
+        .then((n) => console.log(`[RAG] ${n} chunks indexés pour "${file.name}"`))
+        .catch((err) => console.error("[RAG] Erreur indexation:", err))
+    );
 
     return apiSuccess({ document });
   } catch (error: any) {
     console.error("Erreur Upload Knowledge:", error);
-    return apiError(error.message || "Erreur lors de l'upload.", 500);
+    const details = error?.response?.data || error?.stack || error.message || "Erreur inconnue";
+    return apiError(`Erreur détaillée: ${details}`, 500);
   }
 }
 

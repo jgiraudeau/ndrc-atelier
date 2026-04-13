@@ -19,7 +19,7 @@ type PrismaInstance = typeof prismaInstance;
 const CHUNK_SIZE    = 900;   // caractères par chunk
 const CHUNK_OVERLAP = 150;   // overlap entre deux chunks consécutifs
 const MIN_CHUNK_LEN = 80;    // chunk trop court = ignoré
-const EMBED_MODEL   = "text-embedding-004";
+const EMBED_MODEL   = "gemini-embedding-001"; // NOUVEAU MODÈLE GOOGLE ACTIF
 const EXTRACT_MODEL = "gemini-2.5-flash";
 
 // ─── Chunking ─────────────────────────────────────────────────────────────────

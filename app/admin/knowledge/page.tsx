@@ -79,11 +79,11 @@ export default function KnowledgeBaseAdmin() {
         body: formData,
       })
       const data = await res.json()
-      if (data.status === "success") {
+      if (data.status === "success" || data.document) {
         setFile(null)
         fetchDocuments()
       } else {
-        setError(data.message || "Erreur lors de l'upload.")
+        setError(data.error || data.message || "Erreur lors de l'upload.")
       }
     } catch (err: any) {
       setError(err.message || "Erreur réseau.")
