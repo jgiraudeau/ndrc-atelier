@@ -53,7 +53,7 @@ export default function KnowledgeBaseAdmin() {
     try {
       const res  = await fetch("/api/admin/knowledge", { headers: authHeader })
       const data = await res.json()
-      if (data.status === "success") setDocuments(data.data.documents)
+      if (res.ok && data.documents) setDocuments(data.documents)
     } catch (err) {
       console.error(err)
     } finally {
@@ -104,11 +104,11 @@ export default function KnowledgeBaseAdmin() {
         body: JSON.stringify({ forceAll }),
       })
       const data = await res.json()
-      if (data.status === "success") {
-        setReindexResult(data.data)
-        fetchDocuments() // rafraîchir la liste
+      if (res.ok) {
+        setReindexResult(data)
+        fetchDocuments()
       } else {
-        setReindexError(data.message || "Erreur lors de la ré-indexation.")
+        setReindexError(data.error || "Erreur lors de la ré-indexation.")
       }
     } catch (err: any) {
       setReindexError(err.message || "Erreur réseau.")
@@ -127,11 +127,11 @@ export default function KnowledgeBaseAdmin() {
       // 1. Obtenir la liste des fichiers
       const listRes  = await fetch("/api/admin/knowledge/index-local", { headers: authHeader })
       const listData = await listRes.json()
-      if (listData.status !== "success") {
-        setLocalError(listData.message || "Impossible de lister les fichiers.")
+      if (!listRes.ok) {
+        setLocalError(listData.error || "Impossible de lister les fichiers.")
         return
       }
-      const files: { source: string; filename: string }[] = listData.data.files
+      const files: { source: string; filename: string }[] = listData.files
       const total = files.length
 
       if (total === 0) {
@@ -161,11 +161,11 @@ export default function KnowledgeBaseAdmin() {
             body: JSON.stringify({ singleFile: f.source }),
           })
           const data = await res.json()
-          if (data.status === "success") {
-            results.push({ file: f.source, chunks: data.data.chunks })
+          if (res.ok) {
+            results.push({ file: f.source, chunks: data.chunks })
             indexed++
           } else {
-            results.push({ file: f.source, chunks: 0, error: data.message })
+            results.push({ file: f.source, chunks: 0, error: data.error || "Erreur" })
           }
         } catch (err: any) {
           results.push({ file: f.source, chunks: 0, error: err.message })
