@@ -4,13 +4,13 @@ import { prisma } from "@/src/lib/prisma";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await requireAuth(request, ["ADMIN", "TEACHER"]);
     if ("status" in auth && auth.status !== 200) return auth;
 
-    const { id } = params;
+    const { id } = await params;
 
     // Prisma: DocumentChunk has onDelete: Cascade to KnowledgeDocument,
     // so deleting this will intelligently clean up all corresponding chunks.
