@@ -259,3 +259,39 @@ model MissionAssignment {
 
   @@unique([missionId, studentId])
 }
+
+// ============================================================
+// BASE DE CONNAISSANCES RAG (Documents CLOUD)
+// ============================================================
+model KnowledgeDocument {
+  id          String          @id @default(cuid())
+  filename    String                                 // ex: "mon_tuto.pdf"
+  displayName String                                 // Nom affiché
+  geminiUri   String                                 // URI Gemini File API (ex: files/123xyz)
+  mimeType    String                                 // as application/pdf
+  category    String                                 // "COURS" | "SUJET" | "CONTEXTE" | "REFERENTIEL"
+  platform    String?                                // "WORDPRESS" | "PRESTASHOP" | "COMMUN"
+  indexed     Boolean         @default(false)        // true = chunks RAG générés
+  createdAt   DateTime        @default(now())
+
+  chunks      DocumentChunk[]
+}
+
+// ============================================================
+// CHUNKS RAG — vecteurs d'embedding pour la recherche sémantique
+// ============================================================
+model DocumentChunk {
+  id         String             @id @default(cuid())
+  content    String             // Texte brut du chunk
+  embedding  Float[]            // Vecteur d'embedding (768 dims, text-embedding-004)
+  chunkIndex Int                // Ordre dans le document
+  source     String             // "db:{documentId}" ou "local:{path}"
+  category   String             // "COURS" | "SUJET" | "CONTEXTE" | "REFERENTIEL"
+  platform   String?            // null = applicable à toutes les plateformes
+  documentId String?
+  document   KnowledgeDocument? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime           @default(now())
+
+  @@index([platform])
+  @@index([documentId])
+}
