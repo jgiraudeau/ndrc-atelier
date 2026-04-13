@@ -78,44 +78,37 @@ function isTextFile(filename: string): boolean {
   return ext === "md" || ext === "txt";
 }
 
-/** Upload un fichier local vers Gemini File API, retourne l'URI */
-async function uploadLocalFileToGemini(
+/**
+ * Extrait le texte d'un fichier binaire (PDF, DOCX…) en l'envoyant
+ * directement en base64 via generateContent (inlineData).
+ * Plus rapide et fiable que le File API pour les fichiers locaux.
+ */
+async function extractTextInline(
   ai: GoogleGenAI,
   filePath: string,
-  mimeType: string,
-  displayName: string
-): Promise<{ uri: string; name: string }> {
-  const tmpPath = path.join("/tmp", path.basename(filePath) + "_" + Date.now());
-  fs.copyFileSync(filePath, tmpPath);
+  mimeType: string
+): Promise<string> {
+  const base64 = fs.readFileSync(filePath).toString("base64");
 
-  const uploaded: any = await ai.files.upload({
-    file: tmpPath,
-    config: { mimeType, displayName },
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { inlineData: { data: base64, mimeType } },
+          {
+            text:
+              "Extrais intégralement le texte de ce document. " +
+              "Retourne uniquement le texte brut, sans mise en forme, " +
+              "sans commentaire, sans introduction ni conclusion.",
+          },
+        ],
+      },
+    ],
   });
 
-  // Attente traitement Gemini
-  let state = uploaded.state;
-  let current = uploaded;
-  while (state === "PROCESSING") {
-    await new Promise((r) => setTimeout(r, 2000));
-    current = await ai.files.get({ name: uploaded.name });
-    state   = (current as any).state;
-  }
-
-  fs.unlinkSync(tmpPath);
-
-  if (state === "FAILED") throw new Error(`Gemini a échoué à traiter ${displayName}`);
-
-  return { uri: (current as any).uri || uploaded.uri, name: uploaded.name };
-}
-
-/** Supprime un fichier de Gemini File API après indexation */
-async function deleteGeminiFile(ai: GoogleGenAI, name: string): Promise<void> {
-  try {
-    await (ai.files as any).delete({ name });
-  } catch {
-    // Non bloquant — la suppression échoue parfois selon la version du SDK
-  }
+  return response.text ?? "";
 }
 
 // ─── Handler principal ────────────────────────────────────────────────────────
@@ -195,34 +188,25 @@ export async function POST(request: NextRequest) {
       try {
         let chunks: number;
 
+        // Extraction du texte selon le type de fichier
+        let rawText: string;
         if (job.isText) {
-          // Markdown / TXT : lire directement, pas besoin de Gemini pour l'extraction
-          const rawText = fs.readFileSync(job.filePath, "utf-8");
-          chunks = await indexDocument(ai, prisma, {
-            documentId: null,
-            fileUri:    "",
-            mimeType:   job.mimeType,
-            category:   job.category,
-            platform:   job.platform,
-            source:     job.source,
-            rawText,
-          });
+          // Markdown / TXT : lecture directe
+          rawText = fs.readFileSync(job.filePath, "utf-8");
         } else {
-          // PDF / DOCX / etc. : upload vers Gemini → extraction → suppression
-          const { uri, name: geminiName } = await uploadLocalFileToGemini(
-            ai, job.filePath, job.mimeType, job.filename
-          );
-          chunks = await indexDocument(ai, prisma, {
-            documentId: null,
-            fileUri:    uri,
-            mimeType:   job.mimeType,
-            category:   job.category,
-            platform:   job.platform,
-            source:     job.source,
-          });
-          // Nettoyage : supprimer le fichier temporaire de Gemini
-          await deleteGeminiFile(ai, geminiName);
+          // PDF / DOCX : extraction via inlineData base64 (plus rapide que File API)
+          rawText = await extractTextInline(ai, job.filePath, job.mimeType);
         }
+
+        chunks = await indexDocument(ai, prisma, {
+          documentId: null,
+          fileUri:    "",
+          mimeType:   job.mimeType,
+          category:   job.category,
+          platform:   job.platform,
+          source:     job.source,
+          rawText,
+        });
 
         results.push({ file: job.source, chunks });
         console.log(`[index-local] ✅ ${job.source} → ${chunks} chunks`);
