@@ -73,7 +73,7 @@ async function withRateLimitRetry<T>(fn: () => Promise<T>, retries = 3): Promise
     try {
       return await fn();
     } catch (e: any) {
-      const isRateLimit = e.status === 429 || e.message?.includes("exceeded") || e.message?.includes("Quota");
+      const isRateLimit = e.status === 429 || e.status === "RESOURCE_EXHAUSTED" || e.message?.includes("exceeded") || e.message?.includes("Quota") || e.message?.includes("exhausted");
       if (attempt >= retries || (!isRateLimit && e.status !== 503)) {
         throw e;
       }
@@ -144,7 +144,7 @@ export async function generateEmbeddingsBatch(
   ai: GoogleGenAI,
   texts: string[]
 ): Promise<number[][]> {
-  const BATCH = 5;
+  const BATCH = 4;
   const results: number[][] = [];
 
   for (let i = 0; i < texts.length; i += BATCH) {
@@ -154,7 +154,7 @@ export async function generateEmbeddingsBatch(
     );
     results.push(...embeddings);
     // Délai systématique pour éviter le rate-limit global des embeddings
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1500));
   }
 
   return results;
