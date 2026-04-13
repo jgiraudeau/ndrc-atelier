@@ -3,29 +3,9 @@ import { requireAuth, apiError, apiSuccess } from "@/src/lib/api-helpers";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/src/lib/prisma";
-import { generateEmbedding, findRelevantChunks } from "@/src/lib/rag";
+import { generateEmbedding, findRelevantChunks, getGenAI } from "@/src/lib/rag";
 import fs from "fs";
 import path from "path";
-
-function getGenAI(): GoogleGenAI {
-  const b64     = process.env.GOOGLE_CREDENTIALS_BASE64;
-  const project = process.env.GOOGLE_CLOUD_PROJECT;
-
-  if (b64 && project) {
-    const json        = Buffer.from(b64, "base64").toString("utf-8");
-    const credentials = JSON.parse(json);
-    return new GoogleGenAI({
-      vertexai: true,
-      project,
-      location: process.env.GOOGLE_CLOUD_LOCATION ?? "europe-west1",
-      googleAuthOptions: { credentials },
-    });
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("La clé d'API Gemini n'est pas configurée côté serveur.");
-  return new GoogleGenAI({ apiKey });
-}
 
 export async function POST(request: NextRequest) {
   try {

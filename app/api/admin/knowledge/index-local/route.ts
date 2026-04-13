@@ -12,7 +12,7 @@ import { NextRequest } from "next/server";
 import { requireAuth, apiError, apiSuccess } from "@/src/lib/api-helpers";
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/src/lib/prisma";
-import { indexDocument } from "@/src/lib/rag";
+import { indexDocument, getGenAI } from "@/src/lib/rag";
 import fs from "fs";
 import path from "path";
 
@@ -49,14 +49,6 @@ const SUPPORTED_MIME: Record<string, string> = {
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function getGenAI(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY manquant.");
-  return new GoogleGenAI({ apiKey });
-}
-
-function getMimeType(filename: string): string | null {
   const ext = filename.split(".").pop()?.toLowerCase() ?? "";
   return SUPPORTED_MIME[ext] ?? null;
 }
