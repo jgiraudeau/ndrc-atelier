@@ -43,6 +43,25 @@ export function chunkText(text: string): string[] {
   return chunks;
 }
 
+// ─── Sécurité API (Rate-Limiting) ─────────────────────────────────────────────
+
+async function withRateLimitRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      const isRateLimit = e.status === 429 || e.message?.includes("exceeded") || e.message?.includes("Quota");
+      if (attempt >= retries || (!isRateLimit && e.status !== 503)) {
+        throw e;
+      }
+      attempt++;
+      console.warn(`[RAG] ⚠️ Quota ou 503 atteint. Pause de 22s avant retry ${attempt}/${retries}...`);
+      await new Promise(r => setTimeout(r, 22000));
+    }
+  }
+}
+
 // ─── Extraction de texte ──────────────────────────────────────────────────────
 
 /**
@@ -54,7 +73,7 @@ export async function extractTextViaGemini(
   fileUri: string,
   mimeType: string
 ): Promise<string> {
-  const response = await ai.models.generateContent({
+  const response = await withRateLimitRetry(() => ai.models.generateContent({
     model: EXTRACT_MODEL,
     contents: [
       {
@@ -70,7 +89,7 @@ export async function extractTextViaGemini(
         ],
       },
     ],
-  });
+  }));
   return response.text ?? "";
 }
 
@@ -84,10 +103,10 @@ export async function generateEmbedding(
   text: string
 ): Promise<number[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await (ai.models as any).embedContent({
+  const result = await withRateLimitRetry(() => (ai.models as any).embedContent({
     model: EMBED_MODEL,
     contents: text,
-  });
+  }));
 
   // Le SDK @google/genai peut retourner embeddings[] ou embedding selon la version
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,7 +122,7 @@ export async function generateEmbeddingsBatch(
   ai: GoogleGenAI,
   texts: string[]
 ): Promise<number[][]> {
-  const BATCH = 10;
+  const BATCH = 5;
   const results: number[][] = [];
 
   for (let i = 0; i < texts.length; i += BATCH) {
@@ -112,6 +131,8 @@ export async function generateEmbeddingsBatch(
       slice.map((t) => generateEmbedding(ai, t))
     );
     results.push(...embeddings);
+    // Délai systématique pour éviter le rate-limit global des embeddings
+    await new Promise(r => setTimeout(r, 1000));
   }
 
   return results;
