@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, UploadCloud, File, Loader2, RefreshCw, CheckCircle2, XCircle, FolderOpen } from "lucide-react"
+import { AlertCircle, UploadCloud, File, Loader2, RefreshCw, CheckCircle2, XCircle, FolderOpen, Trash2 } from "lucide-react"
 
 type KnowledgeDoc = {
   id: string
@@ -41,6 +41,7 @@ export default function KnowledgeBaseAdmin() {
   const [localProgress, setLocalProgress]     = useState<{ current: number; total: number; file: string } | null>(null)
   const [localResult, setLocalResult]         = useState<{ message: string; indexed: number; total: number; results: { file: string; chunks: number; error?: string }[] } | null>(null)
   const [localError, setLocalError]           = useState<string | null>(null)
+  const [deletingId, setDeletingId]           = useState<string | null>(null)
 
   const token = typeof window !== "undefined" ? localStorage.getItem("ndrc_token") : null
 
@@ -92,13 +93,12 @@ export default function KnowledgeBaseAdmin() {
     }
   }
 
-  const handleReindex = async (forceAll = false) => {
+  const handleReindex = async (forceAll: boolean = false) => {
     setReindexing(true)
-    setReindexResult(null)
     setReindexError(null)
-
+    setReindexResult(null)
     try {
-      const res  = await fetch("/api/admin/knowledge/reindex", {
+      const res = await fetch("/api/admin/knowledge/reindex", {
         method: "POST",
         headers: { ...authHeader, "Content-Type": "application/json" },
         body: JSON.stringify({ forceAll }),
@@ -108,12 +108,33 @@ export default function KnowledgeBaseAdmin() {
         setReindexResult(data)
         fetchDocuments()
       } else {
-        setReindexError(data.error || "Erreur lors de la ré-indexation.")
+        setReindexError(data.error || "Erreur de ré-indexation")
       }
     } catch (err: any) {
-      setReindexError(err.message || "Erreur réseau.")
+      setReindexError(err.message)
     } finally {
       setReindexing(false)
+    }
+  }
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement le document "${name}" (et toutes ses données RAG) ?`)) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/knowledge/${id}`, {
+        method: "DELETE",
+        headers: authHeader,
+      });
+      if (res.ok) {
+        fetchDocuments();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Erreur lors de la suppression.");
+      }
+    } catch (err: any) {
+      alert("Erreur réseau lors de la suppression.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -355,8 +376,8 @@ export default function KnowledgeBaseAdmin() {
                       </div>
                     </div>
 
-                    {/* Statut RAG */}
-                    <div className="shrink-0 text-right ml-3">
+                    {/* Statut RAG & Actions */}
+                    <div className="shrink-0 flex items-center gap-4 text-right ml-3">
                       {doc.indexed ? (
                         <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -370,6 +391,21 @@ export default function KnowledgeBaseAdmin() {
                           <span className="text-xs font-medium">Non indexé</span>
                         </div>
                       )}
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(doc.id, doc.displayName)}
+                        disabled={deletingId === doc.id}
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        title="Supprimer définitivement"
+                      >
+                        {deletingId === doc.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
                   </div>
                 ))}
