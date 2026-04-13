@@ -49,6 +49,8 @@ const SUPPORTED_MIME: Record<string, string> = {
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getMimeType(filename: string): string | null {
   const ext = filename.split(".").pop()?.toLowerCase() ?? "";
   return SUPPORTED_MIME[ext] ?? null;
 }
