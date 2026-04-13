@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { config } from "dotenv";
+import { GoogleGenAI } from "@google/genai";
 
 // Charge les variables d'environnement en tout premier (avant Prisma)
 config({ path: path.join(process.cwd(), ".env.local") });
