@@ -26,23 +26,27 @@ type ReindexResult = {
 }
 
 export default function KnowledgeBaseAdmin() {
-  const [documents, setDocuments]       = useState<KnowledgeDoc[]>([])
-  const [loading, setLoading]           = useState(true)
-  const [file, setFile]                 = useState<File | null>(null)
-  const [category, setCategory]         = useState("COURS")
-  const [platform, setPlatform]         = useState("NONE")
-  const [uploading, setUploading]       = useState(false)
-  const [error, setError]               = useState<string | null>(null)
-  const [reindexing, setReindexing]     = useState(false)
+  const [documents, setDocuments]         = useState<KnowledgeDoc[]>([])
+  const [loading, setLoading]             = useState(true)
+  const [file, setFile]                   = useState<File | null>(null)
+  const [category, setCategory]           = useState("COURS")
+  const [platform, setPlatform]           = useState("NONE")
+  const [uploading, setUploading]         = useState(false)
+  const [error, setError]                 = useState<string | null>(null)
+  const [reindexing, setReindexing]       = useState(false)
   const [reindexResult, setReindexResult] = useState<ReindexResult | null>(null)
-  const [reindexError, setReindexError] = useState<string | null>(null)
+  const [reindexError, setReindexError]   = useState<string | null>(null)
+
+  const token = typeof window !== "undefined" ? localStorage.getItem("ndrc_token") : null
 
   useEffect(() => { fetchDocuments() }, [])
+
+  const authHeader = { Authorization: `Bearer ${token}` }
 
   const fetchDocuments = async () => {
     setLoading(true)
     try {
-      const res  = await fetch("/api/admin/knowledge")
+      const res  = await fetch("/api/admin/knowledge", { headers: authHeader })
       const data = await res.json()
       if (data.status === "success") setDocuments(data.data.documents)
     } catch (err) {
@@ -64,7 +68,11 @@ export default function KnowledgeBaseAdmin() {
     formData.append("platform", platform)
 
     try {
-      const res  = await fetch("/api/admin/knowledge", { method: "POST", body: formData })
+      const res  = await fetch("/api/admin/knowledge", {
+        method: "POST",
+        headers: authHeader,
+        body: formData,
+      })
       const data = await res.json()
       if (data.status === "success") {
         setFile(null)
@@ -87,7 +95,7 @@ export default function KnowledgeBaseAdmin() {
     try {
       const res  = await fetch("/api/admin/knowledge/reindex", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...authHeader, "Content-Type": "application/json" },
         body: JSON.stringify({ forceAll }),
       })
       const data = await res.json()
