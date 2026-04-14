@@ -166,6 +166,27 @@ export default function AdminGrillePage() {
     setCloning(false)
   }
 
+  const [repairing, setRepairing] = useState(false)
+
+  const handleRepairUrls = async () => {
+    if (!selectedClass?.cpanelUser) return
+    setRepairing(true)
+    setMessage(null)
+    const res = await fetch("/api/provisioning/repair-urls", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cpanelUser: selectedClass.cpanelUser }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setMessage({ type: "success", text: `URLs réparées : ${data.repaired}/${data.total} sites mis à jour.` })
+      loadSites(selectedClass.cpanelUser, false)
+    } else {
+      setMessage({ type: "error", text: data.error ?? "Erreur lors de la réparation." })
+    }
+    setRepairing(false)
+  }
+
   const openCpanel = async () => {
     if (!selectedClass?.cpanelUser) return
     const res = await fetch(`/api/provisioning/cpanel-url?cpanelUser=${selectedClass.cpanelUser}`, {
@@ -193,10 +214,21 @@ export default function AdminGrillePage() {
         </div>
         <div className="ml-auto flex items-center gap-3">
           {selectedClass?.cpanelUser && (
-            <button onClick={openCpanel}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded-lg text-xs font-bold text-white transition-colors">
-              <ExternalLink size={12} /> cPanel
-            </button>
+            <>
+              <button
+                onClick={handleRepairUrls}
+                disabled={repairing}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 rounded-lg text-xs font-bold text-white transition-colors"
+                title="Resynchronise les URLs depuis Softaculous"
+              >
+                <RefreshCw size={12} className={repairing ? "animate-spin" : ""} />
+                {repairing ? "Réparation…" : "Réparer URLs"}
+              </button>
+              <button onClick={openCpanel}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded-lg text-xs font-bold text-white transition-colors">
+                <ExternalLink size={12} /> cPanel
+              </button>
+            </>
           )}
           {selectedClass && (
             <button onClick={() => loadSites(selectedClass.cpanelUser!, true)} className="text-slate-400 hover:text-white">

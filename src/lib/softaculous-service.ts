@@ -100,6 +100,23 @@ export async function installApp(
     return { success: false, error: `Session cPanel : ${err instanceof Error ? err.message : String(err)}` }
   }
 
+  const softaUrl = `${baseUrl}/frontend/jupiter/softaculous/index.live.php?act=software&soft=${appConfig.id}&api=json`
+
+  // Récupérer le formulaire d'installation pour extraire soft_status_key (token CSRF Softaculous)
+  let softStatusKey = ""
+  try {
+    const formRes = await fetch(
+      `${baseUrl}/frontend/jupiter/softaculous/index.live.php?act=software&soft=${appConfig.id}`,
+      { headers: { Cookie: cookie } }
+    )
+    const formHtml = await formRes.text()
+    const match = formHtml.match(/<input\b[^>]*\bname=["']soft_status_key["'][^>]*>/i)
+    if (match) {
+      const valMatch = match[0].match(/\bvalue=["']([^"']*)["']/i)
+      softStatusKey = valMatch?.[1] ?? ""
+    }
+  } catch { /* continue sans le token — Softaculous retournera une erreur explicite */ }
+
   const installParams = new URLSearchParams({
     softsubmit: "1",
     auto_upgrade: "1",
@@ -111,9 +128,8 @@ export async function installApp(
     admin_email: options.adminEmail,
     language: "fr",
     site_name: options.siteName,
+    ...(softStatusKey ? { soft_status_key: softStatusKey } : {}),
   })
-
-  const softaUrl = `${baseUrl}/frontend/jupiter/softaculous/index.live.php?act=software&soft=${appConfig.id}&api=json`
 
   try {
     const res = await fetch(softaUrl, {
