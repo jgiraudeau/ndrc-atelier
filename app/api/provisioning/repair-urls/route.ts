@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         // Site PAS dans Softaculous → remettre en PENDING (non déployé)
         await prisma.site.update({
           where: { id: site.id },
-          data: { status: "PENDING", url: null, adminUrl: null },
+          data: { status: "PENDING", url: `https://${host}`, adminUrl: null },
         })
         reset++
         details.push({ subdomain: site.subdomain, found: false, adminUrl: null })
