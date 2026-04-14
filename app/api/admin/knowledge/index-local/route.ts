@@ -199,6 +199,11 @@ export async function POST(request: NextRequest) {
       rawText = await extractTextInline(ai, job.filePath, job.mimeType);
     }
 
+    if (!rawText.trim()) {
+      console.warn(`[index-local] ⚠ ${job.source} — texte vide (PDF scanné ou non lisible par Gemini)`);
+      return apiSuccess({ source: job.source, chunks: 0, warning: "Texte non extrait — PDF scanné ou protégé ?" });
+    }
+
     const chunks = await indexDocument(ai, prisma, {
       documentId: null,
       mimeType:   job.mimeType,
