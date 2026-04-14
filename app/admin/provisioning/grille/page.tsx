@@ -179,7 +179,7 @@ export default function AdminGrillePage() {
     })
     const data = await res.json()
     if (res.ok) {
-      setMessage({ type: "success", text: `URLs réparées : ${data.repaired}/${data.total} sites mis à jour.` })
+      setMessage({ type: "success", text: `Sync Softaculous : ${data.repaired} déployés, ${data.reset} remis en attente.` })
       loadSites(selectedClass.cpanelUser, false)
     } else {
       setMessage({ type: "error", text: data.error ?? "Erreur lors de la réparation." })

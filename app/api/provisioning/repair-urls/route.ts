@@ -93,37 +93,44 @@ export async function POST(request: NextRequest) {
       installByHost[host] = { siteUrl, adminUrl }
     }
 
-    // Trouver les sites ACTIVE de ce compte sans adminUrl
+    // Tous les sites non-modèles du compte (tous statuts)
     const sites = await prisma.site.findMany({
-      where: { cpanelUser, domain, status: "ACTIVE" },
+      where: { cpanelUser, domain, isModel: false },
     })
 
     let repaired = 0
-    const details: { subdomain: string; adminUrl: string | null }[] = []
+    let reset = 0
+    const details: { subdomain: string; found: boolean; adminUrl: string | null }[] = []
 
     for (const site of sites) {
       const host = `${site.subdomain}.${domain}`.toLowerCase()
       const found = installByHost[host]
 
-      // Forcer la mise à jour de url et adminUrl si trouvé dans Softaculous
-      // Pour WP : adminUrl fixe /wp-admin si Softaculous ne le retourne pas
-      let adminUrl = found?.adminUrl ?? null
-      if (!adminUrl && site.type === "WORDPRESS") {
-        adminUrl = `https://${host}/wp-admin`
+      if (found) {
+        // Site confirmé dans Softaculous → mettre à jour url + adminUrl
+        let adminUrl = found.adminUrl
+        // WP : adminUrl toujours /wp-admin (Softaculous ne le retourne pas toujours)
+        if (!adminUrl && site.type === "WORDPRESS") {
+          adminUrl = `https://${host}/wp-admin`
+        }
+        await prisma.site.update({
+          where: { id: site.id },
+          data: { status: "ACTIVE", url: found.siteUrl, adminUrl },
+        })
+        repaired++
+        details.push({ subdomain: site.subdomain, found: true, adminUrl })
+      } else {
+        // Site PAS dans Softaculous → remettre en PENDING (non déployé)
+        await prisma.site.update({
+          where: { id: site.id },
+          data: { status: "PENDING", url: null, adminUrl: null },
+        })
+        reset++
+        details.push({ subdomain: site.subdomain, found: false, adminUrl: null })
       }
-
-      const siteUrl = found?.siteUrl ?? `https://${host}`
-
-      await prisma.site.update({
-        where: { id: site.id },
-        data: { url: siteUrl, adminUrl },
-      })
-
-      repaired++
-      details.push({ subdomain: site.subdomain, adminUrl })
     }
 
-    return NextResponse.json({ repaired, total: sites.length, details })
+    return NextResponse.json({ repaired, reset, total: sites.length, details })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error("[repair-urls]", msg)
