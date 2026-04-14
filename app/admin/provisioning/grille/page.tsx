@@ -380,16 +380,35 @@ export default function AdminGrillePage() {
                   </div>
 
                   <div className="grid grid-cols-5 gap-2">
-                    {studentSites.map(site => (
+                    {studentSites.map(site => {
+                      const isFullyDeployed = site.status === "ACTIVE" && !!site.url && !!site.adminUrl
+                      const isPartial      = site.status === "ACTIVE" && (!site.url || !site.adminUrl)
+                      const isError        = site.status === "ERROR"
+                      const isCreating     = site.status === "CREATING"
+                      const dotColor = isFullyDeployed ? "bg-green-500"
+                                     : isPartial      ? "bg-amber-400"
+                                     : isError        ? "bg-red-500"
+                                     : isCreating     ? "bg-blue-400"
+                                     :                  "bg-slate-300"
+                      return (
                       <div
                         key={site.id}
                         onClick={() => toggleSelect(site.subdomain)}
                         className={`relative border-2 rounded-xl p-2 cursor-pointer transition-all ${
                           selected.has(site.subdomain)
                             ? "border-slate-600 bg-slate-50"
-                            : "border-slate-200 hover:border-slate-300"
+                            : isFullyDeployed
+                              ? "border-green-200 hover:border-green-400"
+                              : isPartial
+                                ? "border-amber-200 hover:border-amber-400"
+                                : isError
+                                  ? "border-red-200 hover:border-red-300"
+                                  : "border-slate-200 hover:border-slate-300"
                         }`}
                       >
+                        {/* Pastille de déploiement */}
+                        <div className={`absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full ${dotColor} ${isCreating ? "animate-pulse" : ""}`} />
+
                         {selected.has(site.subdomain) && (
                           <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-slate-700 rounded-full flex items-center justify-center">
                             <CheckCircle size={10} className="text-white" />
@@ -421,7 +440,16 @@ export default function AdminGrillePage() {
                           </div>
                         )}
                       </div>
-                    ))}
+                    )})}
+                  </div>
+
+                  {/* Légende */}
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 text-[10px] text-slate-500">
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> Déployé</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" /> Incomplet</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-400 inline-block" /> En cours</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> Erreur</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-slate-300 inline-block" /> Non déployé</span>
                   </div>
                 </div>
 
