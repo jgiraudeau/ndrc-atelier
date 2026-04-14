@@ -145,7 +145,7 @@ export async function runCloneJob(params: {
     console.error(`[clone] Installation source ${sourceUrl} introuvable dans Softaculous`)
     // Mettre les sites en ERROR
     await prisma.site.updateMany({
-      where: { subdomain: { in: targetSubdomains }, domain, cpanelUser },
+      where: { subdomain: { in: targetSubdomains }, domain },
       data: { status: SiteStatus.ERROR },
     })
     return
@@ -178,7 +178,7 @@ export async function runCloneJob(params: {
 
     // Marquer CREATING
     await prisma.site.updateMany({
-      where: { subdomain: targetSubdomain, domain, cpanelUser },
+      where: { subdomain: targetSubdomain, domain },
       data: { status: SiteStatus.CREATING },
     })
 
@@ -203,13 +203,23 @@ export async function runCloneJob(params: {
 
       const cloneText = await cloneRes.text()
       const cloneData = parseMaybeJson(cloneText)
-      const softError = extractSoftError(cloneData)
 
-      if (softError || !cloneRes.ok) {
-        throw new Error(softError ?? `HTTP ${cloneRes.status}`)
+      // Détecter les erreurs : JSON mal formé OU erreur Softaculous OU HTTP non-OK
+      if (!cloneRes.ok) {
+        throw new Error(`HTTP ${cloneRes.status}`)
+      }
+      if (!cloneData) {
+        throw new Error(`Réponse Softaculous non-JSON : ${cloneText.slice(0, 200)}`)
+      }
+      const softError = extractSoftError(cloneData)
+      if (softError) {
+        throw new Error(softError)
       }
 
       const siteUrl = `https://${targetUrl}`
+
+      // Attendre que Softaculous enregistre le clone (traitement asynchrone côté serveur)
+      await new Promise(resolve => setTimeout(resolve, 5000))
 
       // Récupérer l'adminUrl réelle depuis Softaculous (ex: /adminXXXXXX pour PS, /wp-admin pour WP)
       let adminUrl: string | null = null
@@ -222,18 +232,21 @@ export async function runCloneJob(params: {
         const targetClean = targetUrl.toLowerCase()
         for (const install of Object.values(refreshedInstalls)) {
           const installHost = (install.softurl ?? install.domain ?? "").toLowerCase()
-            .replace(/^https?:\/\//, "").replace(/\/.*$/, "")
-          if (installHost === targetClean) {
+            .replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "")
+          if (installHost === targetClean || installHost === `${targetSubdomain}.${domain}`.toLowerCase()) {
             if (install.adminurl) {
               adminUrl = install.adminurl.startsWith("http") ? install.adminurl : `${siteUrl}/${install.adminurl.replace(/^\//, "")}`
             }
             break
           }
         }
-      } catch { /* adminUrl restera null */ }
+      } catch (e) {
+        console.warn(`[clone] Impossible de récupérer adminUrl pour ${targetUrl}:`, e)
+      }
 
+      // Utiliser uniquement subdomain+domain (clé unique) pour éviter les faux zéros sur cpanelUser
       await prisma.site.updateMany({
-        where: { subdomain: targetSubdomain, domain, cpanelUser },
+        where: { subdomain: targetSubdomain, domain },
         data: { status: SiteStatus.ACTIVE, url: siteUrl, adminUrl },
       })
       console.log(`[clone]   ✓ ${targetUrl} cloné`)
@@ -242,7 +255,7 @@ export async function runCloneJob(params: {
       const msg = err instanceof Error ? err.message : String(err)
       console.error(`[clone]   ✗ ${targetUrl} ERREUR:`, msg)
       await prisma.site.updateMany({
-        where: { subdomain: targetSubdomain, domain, cpanelUser },
+        where: { subdomain: targetSubdomain, domain },
         data: { status: SiteStatus.ERROR },
       })
     }
