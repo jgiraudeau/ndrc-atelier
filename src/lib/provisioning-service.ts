@@ -44,7 +44,12 @@ export async function initProvisioningJob(jobId: string): Promise<{ error?: stri
     select: { domain: true },
   })
 
-  const domain = cpanelAccount?.domain ?? job.whmConfig.host
+  let domain = cpanelAccount?.domain
+  if (!domain) {
+    const sampleSite = await prisma.site.findFirst({ where: { cpanelUser: job.class.cpanelUser }, select: { domain: true } })
+    domain = sampleSite?.domain ?? job.whmConfig.host
+    if (sampleSite?.domain) console.log(`[provisioning] domaine déduit depuis les sites: ${domain}`)
+  }
   const app: SoftAppType = job.siteType === "WORDPRESS" ? "wordpress" : "prestashop"
   const subdomains = generateSubdomains(app)
 

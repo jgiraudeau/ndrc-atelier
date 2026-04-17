@@ -110,9 +110,19 @@ export async function runCloneJob(params: {
   const baseUrl = `https://${session.host}:2083/${session.cpsess}`
   const cookie = session.cookie
 
-  // Récupérer le domaine du compte
+  // Récupérer le domaine du compte — fallback sur les Sites existants si CpanelAccount absent
   const cpanelAccount = await prisma.cpanelAccount.findFirst({ where: { username: cpanelUser }, select: { domain: true } })
-  const domain = cpanelAccount?.domain ?? whmConfig.host
+  let domain = cpanelAccount?.domain
+  if (!domain) {
+    const sampleSite = await prisma.site.findFirst({ where: { cpanelUser }, select: { domain: true } })
+    domain = sampleSite?.domain
+    if (domain) {
+      console.log(`[clone] CpanelAccount introuvable pour "${cpanelUser}", domaine déduit depuis les sites: ${domain}`)
+    } else {
+      console.error(`[clone] Impossible de déterminer le domaine pour cpanelUser="${cpanelUser}"`)
+      domain = whmConfig.host
+    }
+  }
 
   // Trouver l'installId du site source dans Softaculous
   const listRes = await fetch(`${baseUrl}/frontend/jupiter/softaculous/index.live.php?act=installations&api=json`, {

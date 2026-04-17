@@ -36,7 +36,12 @@ export async function runInstallJob(params: {
     where: { username: cpanelUser },
     select: { domain: true },
   })
-  const domain = cpanelAccount?.domain ?? ""
+  let domain = cpanelAccount?.domain ?? ""
+  if (!domain) {
+    const sampleSite = await prisma.site.findFirst({ where: { cpanelUser }, select: { domain: true } })
+    domain = sampleSite?.domain ?? ""
+    if (domain) console.log(`[install] domaine déduit depuis les sites: ${domain}`)
+  }
 
   for (const subdomain of subdomains) {
     const targetDomain = `${subdomain}.${domain}`
