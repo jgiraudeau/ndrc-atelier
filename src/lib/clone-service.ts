@@ -233,25 +233,57 @@ export async function runCloneJob(params: {
 
       // Récupérer l'adminUrl réelle depuis Softaculous (ex: /adminXXXXXX pour PS, /wp-admin pour WP)
       let adminUrl: string | null = null
-      try {
-        const refreshRes = await fetch(`${baseUrl}/frontend/jupiter/softaculous/index.live.php?act=installations&api=json`, {
-          headers: { Cookie: cookie },
-        })
-        const refreshData = parseMaybeJson(await refreshRes.text())
-        const refreshedInstalls = extractInstallations(refreshData)
-        const targetClean = targetUrl.toLowerCase()
-        for (const install of Object.values(refreshedInstalls)) {
-          const installHost = (install.softurl ?? install.domain ?? "").toLowerCase()
-            .replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "")
-          if (installHost === targetClean || installHost === `${targetSubdomain}.${domain}`.toLowerCase()) {
-            if (install.adminurl) {
-              adminUrl = install.adminurl.startsWith("http") ? install.adminurl : `${siteUrl}/${install.adminurl.replace(/^\//, "")}`
+
+      // Déterminer le type depuis la DB (WP vs PS)
+      const siteRecord = await prisma.site.findFirst({ where: { subdomain: targetSubdomain, domain }, select: { type: true } })
+      const isWordPress = siteRecord?.type !== "PRESTASHOP"
+
+      // WP : /wp-admin toujours fixe, pas besoin de requêter Softaculous
+      if (isWordPress) {
+        adminUrl = `${siteUrl}/wp-admin`
+      } else {
+        // PS : dossier adminXXXXXX variable — chercher dans la liste puis fallback act=edit
+        try {
+          const refreshRes = await fetch(`${baseUrl}/frontend/jupiter/softaculous/index.live.php?act=installations&api=json`, {
+            headers: { Cookie: cookie },
+          })
+          const refreshData = parseMaybeJson(await refreshRes.text())
+          const refreshedInstalls = extractInstallations(refreshData)
+          const targetClean = targetUrl.toLowerCase()
+          let psInsid: string | null = null
+
+          for (const [insid, install] of Object.entries(refreshedInstalls)) {
+            const installHost = (install.softurl ?? install.domain ?? "").toLowerCase()
+              .replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "")
+            if (installHost === targetClean || installHost === `${targetSubdomain}.${domain}`.toLowerCase()) {
+              if (install.adminurl) {
+                adminUrl = install.adminurl.startsWith("http") ? install.adminurl : `${siteUrl}/${install.adminurl.replace(/^\//, "")}`
+              }
+              psInsid = insid
+              break
             }
-            break
           }
+
+          // Si adminUrl toujours null → interroger act=edit pour trouver le dossier admin PS
+          if (!adminUrl && psInsid) {
+            const editRes = await fetch(
+              `${baseUrl}/frontend/jupiter/softaculous/index.live.php?act=edit&insid=${encodeURIComponent(psInsid)}`,
+              { headers: { Cookie: cookie } }
+            )
+            const editHtml = await editRes.text()
+            const match = editHtml.match(/<input\b[^>]*\bname=["']admin_folder["'][^>]*>/i)
+            if (match) {
+              const valMatch = match[0].match(/\bvalue=["']([^"']+)["']/i)
+              const adminFolder = valMatch?.[1]?.trim()
+              if (adminFolder) {
+                adminUrl = `${siteUrl}/${adminFolder}`
+                console.log(`[clone] PS admin folder trouvé via act=edit pour ${targetUrl}: ${adminFolder}`)
+              }
+            }
+          }
+        } catch (e) {
+          console.warn(`[clone] Impossible de récupérer adminUrl pour ${targetUrl}:`, e)
         }
-      } catch (e) {
-        console.warn(`[clone] Impossible de récupérer adminUrl pour ${targetUrl}:`, e)
       }
 
       // Utiliser uniquement subdomain+domain (clé unique) pour éviter les faux zéros sur cpanelUser

@@ -1,7 +1,8 @@
 /**
  * POST /api/provisioning/repair-urls
  * Relit la liste Softaculous et remet à jour url + adminUrl
- * pour tous les sites ACTIVE d'un compte cPanel qui n'ont pas d'adminUrl.
+ * pour tous les sites d'un compte cPanel (modèles inclus).
+ * Pour PrestaShop sans adminUrl, interroge act=edit pour trouver le dossier adminXXXXXX.
  */
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth, apiError } from "@/src/lib/api-helpers"
@@ -16,6 +17,16 @@ function parseMaybeJson(input: string): Record<string, unknown> | null {
   return null
 }
 
+/** Extrait le dossier admin PrestaShop depuis la page HTML act=edit */
+function extractPsAdminFolder(html: string): string | null {
+  // <input ... name="admin_folder" ... value="adminXXXXXX" ...>
+  const match = html.match(/<input\b[^>]*\bname=["']admin_folder["'][^>]*>/i)
+  if (!match) return null
+  const valMatch = match[0].match(/\bvalue=["']([^"']+)["']/i)
+  return valMatch?.[1]?.trim() || null
+}
+
+/** Retourne insid → { softurl, domain, adminurl } */
 function extractInstallations(payload: unknown): Record<string, { softurl?: string; domain?: string; adminurl?: string }> {
   const root = payload as Record<string, unknown> | null
   if (!root) return {}
@@ -29,14 +40,17 @@ function extractInstallations(payload: unknown): Record<string, { softurl?: stri
     if (typeof value === "object" && value !== null) {
       const v = value as Record<string, unknown>
       if (typeof v.softurl === "string" || typeof v.domain === "string") {
-        out[key] = { softurl: v.softurl as string, domain: v.domain as string, adminurl: v.adminurl as string | undefined }
+        // Also check alternate field names for admin folder
+        const adminurl = (v.adminurl ?? v.admin_folder ?? v.admin_dir) as string | undefined
+        out[key] = { softurl: v.softurl as string, domain: v.domain as string, adminurl }
         continue
       }
       for (const [nestedId, nestedValue] of Object.entries(v)) {
         const nv = nestedValue as Record<string, unknown>
         if (typeof nv?.softurl === "string" || typeof nv?.domain === "string") {
           const compositeId = /^\d+$/.test(key) && /^\d+$/.test(nestedId) ? `${key}_${nestedId}` : nestedId
-          out[compositeId] = { softurl: nv.softurl as string, domain: nv.domain as string, adminurl: nv.adminurl as string | undefined }
+          const adminurl = (nv.adminurl ?? nv.admin_folder ?? nv.admin_dir) as string | undefined
+          out[compositeId] = { softurl: nv.softurl as string, domain: nv.domain as string, adminurl }
         }
       }
     }
@@ -81,9 +95,9 @@ export async function POST(request: NextRequest) {
     )
     const installations = extractInstallations(parseMaybeJson(await listRes.text()))
 
-    // Construire un index hostname → { siteUrl, adminUrl }
-    const installByHost: Record<string, { siteUrl: string; adminUrl: string | null }> = {}
-    for (const install of Object.values(installations)) {
+    // Construire un index hostname → { siteUrl, adminUrl, insid }
+    const installByHost: Record<string, { siteUrl: string; adminUrl: string | null; insid: string }> = {}
+    for (const [insid, install] of Object.entries(installations)) {
       const raw = (install.softurl ?? install.domain ?? "").toLowerCase()
       const host = raw.replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "")
       if (!host) continue
@@ -94,12 +108,12 @@ export async function POST(request: NextRequest) {
           ? install.adminurl
           : `${siteUrl}/${install.adminurl.replace(/^\//, "")}`
       }
-      installByHost[host] = { siteUrl, adminUrl }
+      installByHost[host] = { siteUrl, adminUrl, insid }
     }
 
-    // Tous les sites non-modèles du compte (tous statuts)
+    // Tous les sites du compte (modèles inclus, tous statuts)
     const sites = await prisma.site.findMany({
-      where: { cpanelUser, domain, isModel: false },
+      where: { cpanelUser, domain },
     })
 
     let repaired = 0
@@ -113,10 +127,28 @@ export async function POST(request: NextRequest) {
       if (found) {
         // Site confirmé dans Softaculous → mettre à jour url + adminUrl
         let adminUrl = found.adminUrl
-        // WP : adminUrl toujours /wp-admin (Softaculous ne le retourne pas toujours)
+
         if (!adminUrl && site.type === "WORDPRESS") {
+          // WP : /wp-admin toujours fixe
           adminUrl = `https://${host}/wp-admin`
+        } else if (!adminUrl && site.type === "PRESTASHOP") {
+          // PS : dossier adminXXXXXX variable — interroger la page act=edit pour le trouver
+          try {
+            const editRes = await fetch(
+              `${baseUrl}/frontend/jupiter/softaculous/index.live.php?act=edit&insid=${encodeURIComponent(found.insid)}`,
+              { headers: { Cookie: cookie } }
+            )
+            const editHtml = await editRes.text()
+            const adminFolder = extractPsAdminFolder(editHtml)
+            if (adminFolder) {
+              adminUrl = `https://${host}/${adminFolder}`
+              console.log(`[repair-urls] PS admin folder trouvé pour ${host}: ${adminFolder}`)
+            }
+          } catch (e) {
+            console.warn(`[repair-urls] Impossible de récupérer admin_folder pour ${host}:`, e)
+          }
         }
+
         await prisma.site.update({
           where: { id: site.id },
           data: { status: "ACTIVE", url: found.siteUrl, adminUrl },
