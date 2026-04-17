@@ -45,7 +45,7 @@ function extractInstallations(payload: unknown): Record<string, { softurl?: stri
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request, ["ADMIN"])
+  const auth = await requireAuth(request, ["ADMIN", "TEACHER"])
   if (auth instanceof NextResponse) return auth
 
   try {
@@ -59,9 +59,13 @@ export async function POST(request: NextRequest) {
       where: { username: cpanelUser },
       select: { domain: true },
     })
-    if (!cpanelAccount) return apiError(`Compte cPanel "${cpanelUser}" introuvable`, 404)
-
-    const domain = cpanelAccount.domain
+    // Fallback : déduire le domaine depuis les Sites existants si CpanelAccount absent
+    let domain = cpanelAccount?.domain
+    if (!domain) {
+      const sampleSite = await prisma.site.findFirst({ where: { cpanelUser }, select: { domain: true } })
+      domain = sampleSite?.domain
+      if (!domain) return apiError(`Impossible de déterminer le domaine pour "${cpanelUser}"`, 404)
+    }
 
     // Lire la liste complète des installations depuis Softaculous
     const session = await getCPanelSessionData(

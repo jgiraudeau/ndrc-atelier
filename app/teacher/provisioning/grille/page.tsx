@@ -67,6 +67,7 @@ export default function GrillePage() {
   const [sourceModel, setSourceModel] = useState<string>("")
   const [cloning, setCloning] = useState(false)
   const [installing, setInstalling] = useState(false)
+  const [repairing, setRepairing] = useState(false)
   const [affectMode, setAffectMode] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [revealedPass, setRevealedPass] = useState<Set<string>>(new Set())
@@ -202,6 +203,25 @@ export default function GrillePage() {
     else alert("Impossible d'ouvrir cPanel : " + (data.error ?? "erreur inconnue"))
   }
 
+  const handleRepair = async () => {
+    if (!selectedClass?.cpanelUser) return
+    setRepairing(true)
+    setMessage(null)
+    const res = await fetch("/api/provisioning/repair-urls", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cpanelUser: selectedClass.cpanelUser }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setMessage({ type: "success", text: `Sync Softaculous : ${data.repaired} site(s) actif(s) trouvés, ${data.reset} remis en attente.` })
+      loadSites(selectedClass.cpanelUser, false)
+    } else {
+      setMessage({ type: "error", text: `Erreur réparation : ${data.error ?? "inconnue"}` })
+    }
+    setRepairing(false)
+  }
+
   // Élèves déjà affectés sur cet onglet (pour éviter double affectation)
   const assignedStudentIds = new Set(studentSites.filter(s => s.student).map(s => s.student!.id))
 
@@ -228,6 +248,13 @@ export default function GrillePage() {
             <button onClick={openCpanel}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs font-bold text-slate-300 transition-all">
               <ExternalLink size={12} /> cPanel
+            </button>
+          )}
+          {selectedClass?.cpanelUser && (
+            <button onClick={handleRepair} disabled={repairing}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs font-bold text-slate-300 transition-all disabled:opacity-40">
+              <RefreshCw size={12} className={repairing ? "animate-spin" : ""} />
+              {repairing ? "Sync…" : "Réparer URLs"}
             </button>
           )}
           {selectedClass && filteredSites.some(s => !s.isModel && s.status === "ACTIVE") && (
