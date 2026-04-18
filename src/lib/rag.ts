@@ -24,6 +24,14 @@ const EXTRACT_MODEL = "gemini-2.5-flash";
 
 // ─── Initialisation API ───────────────────────────────────────────────────────
 
+export function getGeminiDeveloperApiClient(): GoogleGenAI {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    throw new Error("Aucune API key Gemini trouvée (GEMINI_API_KEY / GOOGLE_API_KEY).");
+  }
+  return new GoogleGenAI({ apiKey });
+}
+
 export function getGenAI(): GoogleGenAI {
   const b64     = process.env.GOOGLE_CREDENTIALS_BASE64;
   const project = process.env.GOOGLE_CLOUD_PROJECT;
@@ -39,7 +47,7 @@ export function getGenAI(): GoogleGenAI {
   }
 
   // Fallback (déconseillé si on veut les crédits Vertex)
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("Aucune configuration Gemini trouvée.");
   return new GoogleGenAI({ apiKey });
 }
