@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { LayoutDashboard, Target, Globe, ShoppingBag, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ChatWidget from "@/components/student/ChatWidget";
 
 const NAV_ITEMS = [
     { href: "/student", label: "Tableau de bord", icon: LayoutDashboard, exact: true },
@@ -70,6 +71,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             <div className="flex-1 md:ml-64 min-h-screen pb-16 md:pb-0">
                 {children}
             </div>
+
+            {/* ── Chat Widget ──────────────────────────────────── */}
+            <ChatWidget />
 
             {/* ── Mobile Bottom Nav ────────────────────────────── */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center z-30 h-16">
