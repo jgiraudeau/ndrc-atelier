@@ -111,7 +111,7 @@ export default function MissionsPage() {
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-800 via-indigo-950 to-slate-900 font-sans pb-20">
             <header className="sticky top-0 z-20 bg-slate-900/70 backdrop-blur-md border-b border-white/5">
-                <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
+                <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
                     <Link href="/student" className="p-2 -ml-2 text-slate-400 hover:text-white transition-colors">
                         <ArrowLeft size={24} />
                     </Link>
@@ -125,7 +125,7 @@ export default function MissionsPage() {
                 </div>
             </header>
 
-            <div className="max-w-md mx-auto p-6 space-y-6">
+            <div className="max-w-3xl mx-auto p-6 space-y-6">
                 {/* Tabs */}
                 <div className="flex bg-black/20 border border-white/5 p-1 rounded-xl">
                     <button onClick={() => setTab("assigned")}
@@ -169,7 +169,7 @@ export default function MissionsPage() {
 
                                 {expandedMissionId === mission.id && (
                                     <div className="border-t border-white/5">
-                                        <div className="p-4 prose prose-sm max-w-none prose-headings:text-white prose-p:text-slate-300 prose-li:text-slate-300" dangerouslySetInnerHTML={{ __html: formatMarkdown(mission.content) }} />
+                                        <div className="p-5 prose prose-sm max-w-none prose-headings:text-white prose-headings:font-bold prose-p:text-slate-200 prose-li:text-slate-200 prose-strong:text-white prose-blockquote:text-slate-300 prose-blockquote:border-indigo-400 text-slate-200 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatMarkdown(mission.content) }} />
                                         <div className="p-4 border-t border-white/5 flex flex-wrap gap-2">
                                             {mission.status === "pending" && (
                                                 <button onClick={() => handleUpdateStatus(mission.id, "in_progress")}
@@ -355,7 +355,7 @@ function MissionResult({ markdown, targetIds, onReset, onSave, justSaved }: {
                         <p className="text-slate-400 text-xs">Directeur de projet NDRC</p>
                     </div>
                 </div>
-                <div className="p-6 prose prose-sm max-w-none prose-headings:text-white prose-p:text-slate-300 prose-li:text-slate-300 prose-a:text-indigo-400">
+                <div className="p-6 text-slate-200 leading-relaxed">
                     <div dangerouslySetInnerHTML={{ __html: formatMarkdown(markdown) }} />
                 </div>
             </div>
@@ -447,14 +447,15 @@ function downloadMissionWord(markdown: string) {
 
 function formatMarkdown(text: string) {
     let html = text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
-        .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-black mt-6 mb-3">$1</h2>')
-        .replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-indigo-200 pl-4 py-1 italic bg-indigo-50/50 my-4 text-slate-600">$1</blockquote>')
-        .replace(/\n\n/g, '</p><p class="mb-4">')
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em class="text-slate-200">$1</em>')
+        .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold text-white mt-5 mb-2">$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2 class="text-xl font-black text-white mt-6 mb-3 pb-2 border-b border-white/10">$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-black text-white mt-6 mb-4">$1</h1>')
+        .replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-indigo-400 pl-4 py-2 italic bg-indigo-500/10 my-4 rounded-r-lg text-slate-300">$1</blockquote>')
+        .replace(/\n\n/g, '</p><p class="mb-4 text-slate-200 leading-relaxed">')
         .replace(/\n/g, '<br />');
-    html = html.replace(/<br \/>- (.*?)(?=<br \/>|$)/g, '<li class="ml-4 mb-2">$1</li>');
-    html = html.replace(/(<li.*<\/li>)/, '<ul class="list-disc my-4">$1</ul>');
-    return `<p>${html}</p>`;
+    html = html.replace(/<br \/>- (.*?)(?=<br \/>|$)/g, '<li class="ml-4 mb-1.5 text-slate-200">$1</li>');
+    html = html.replace(/(<li[^>]*>.*?<\/li>)+/g, '<ul class="list-disc list-inside my-3 space-y-1">$&</ul>');
+    return `<p class="mb-4 text-slate-200 leading-relaxed">${html}</p>`;
 }
