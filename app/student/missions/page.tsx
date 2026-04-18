@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Target, Briefcase, Loader2, Sparkles, Download, FileText, BookmarkCheck, Clock, CheckCircle2, Play } from "lucide-react";
+import { ArrowLeft, Target, Briefcase, Loader2, Sparkles, Download, FileText, BookmarkCheck, Clock, CheckCircle2, Play, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { apiGetProgress, apiGetMyMissions, apiUpdateMissionStatus, apiSaveMission, type MissionAssignmentData } from "@/src/lib/api-client";
 import { ALL_COMPETENCIES } from "@/src/data/competencies";
@@ -181,6 +181,12 @@ export default function MissionsPage() {
                                                 <button onClick={() => handleUpdateStatus(mission.id, "completed")}
                                                     className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors">
                                                     <CheckCircle2 size={14} /> Marquer terminée
+                                                </button>
+                                            )}
+                                            {mission.status === "completed" && (
+                                                <button onClick={() => handleUpdateStatus(mission.id, "in_progress")}
+                                                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-slate-500/20 border border-slate-500/30 text-slate-400 hover:bg-slate-500/30 transition-colors">
+                                                    <RotateCcw size={14} /> Réouvrir
                                                 </button>
                                             )}
                                             <button onClick={() => downloadMissionPdf(mission.content)}
